@@ -1,0 +1,431 @@
+/* --- VARIABLES Y RESET --- */
+:root {
+    --bg-blanco: #ffffff;
+    --bg-claro: #f8f9fa;
+    --texto-oscuro: #111111;
+    --texto-gris: #666666;
+    --color-primario: #d4a373; 
+    --color-primario-hover: #b58555;
+    --color-footer: #1a202c;
+    
+    --font-titulos: 'Montserrat', sans-serif;
+    --font-cuerpo: 'Inter', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+body {
+    background-color: var(--bg-blanco);
+    color: var(--texto-oscuro);
+    font-family: var(--font-cuerpo);
+    overflow-x: hidden;
+}
+
+/* --- NAVEGACIÓN --- */
+.navbar {
+    position: fixed; top: 0; width: 100%; height: 75px;
+    background: var(--bg-blanco); z-index: 1000;
+    display: flex; align-items: center; 
+    border-bottom: 1px solid #eaeaea;
+}
+.nav-container { width: 90%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+.logo-nav { font-family: var(--font-titulos); font-size: 24px; font-weight: 600; letter-spacing: 2px; color: var(--texto-oscuro); cursor: pointer; }
+.nav-links { display: flex; list-style: none; gap: 30px; }
+.nav-links a { color: var(--texto-gris); text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.3s; padding-bottom: 5px; border-bottom: 2px solid transparent; }
+.nav-links a:hover, .nav-links a.active { color: var(--texto-oscuro); border-bottom: 2px solid var(--color-primario); }
+.nav-actions { display: flex; gap: 15px; }
+
+.btn-ingresar { background: transparent; color: var(--texto-oscuro); border: none; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.3s; padding: 10px 15px; border-radius: 6px; }
+.btn-ingresar:hover { color: var(--color-primario); }
+.btn-registrarse { background: var(--color-primario); color: white; border: none; border-radius: 6px; padding: 10px 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.3s; }
+.btn-registrarse:hover { background: var(--color-primario-hover); }
+.btn-profile { background: transparent; color: var(--texto-oscuro); border: 1px solid var(--color-primario); font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.3s; padding: 8px 15px; border-radius: 6px; }
+.btn-profile:hover { background: var(--color-primario); color: white; }
+
+/* HAMBURGER MENU - SIEMPRE VISIBLE */
+.menu-hamburguesa { 
+    display: flex; flex-direction: column; gap: 5px; cursor: pointer; 
+    margin-left: auto; padding: 0 15px;
+}
+.menu-hamburguesa .linea { width: 25px; height: 2px; background: var(--texto-oscuro); transition: 0.3s; }
+
+/* DESPLEGABLE MENU */
+.nav-menu-movil { 
+    display: none; 
+    position: absolute; top: 75px; left: 0; right: 0;
+    background: white; max-height: 70vh; overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 1001;
+    padding: 20px;
+}
+.nav-menu-movil.active { display: block; }
+
+/* --- HERO SECTION --- */
+.hero-section { 
+    height: 80vh; position: relative; display: flex; align-items: center; padding-left: 10%;
+    background: url('https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+}
+.hero-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); filter: grayscale(80%); z-index: 1; }
+.hero-content { position: relative; z-index: 10; max-width: 600px; color: white; }
+.hero-title { font-family: 'Times New Roman', Times, serif; font-size: 80px; font-weight: 400; margin-bottom: 10px; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+.hero-subtitle { font-size: 22px; margin-bottom: 40px; font-weight: 300; line-height: 1.4; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); }
+
+.hero-buttons { display: flex; gap: 20px; }
+.btn-ver-servicios { background: var(--color-primario); color: white; border: none; padding: 15px 30px; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; transition: 0.3s; }
+.btn-ver-servicios:hover { background: var(--color-primario-hover); }
+.btn-reservar-cita { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 15px 30px; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; backdrop-filter: blur(5px); transition: 0.3s; }
+.btn-reservar-cita:hover { background: rgba(255,255,255,0.2); border-color: white; }
+
+/* --- UTILIDADES --- */
+.container { width: 90%; max-width: 1200px; margin: 0 auto; position: relative; }
+.w-100 { width: 100%; }
+.mt-15 { margin-top: 15px; }
+.text-center { text-align: center; }
+.bg-claro { background-color: var(--bg-claro); }
+
+.section-header { text-align: center; margin-bottom: 50px; padding-top: 80px; }
+.section-header h2 { font-size: 36px; font-weight: 600; color: var(--texto-oscuro); margin-bottom: 15px; }
+.section-header p { color: var(--texto-gris); font-size: 16px; }
+
+/* --- SERVICIOS PÚBLICOS --- */
+.servicios-section { padding-bottom: 100px; }
+.filtros-categoria { display: flex; justify-content: center; gap: 15px; margin-bottom: 50px; flex-wrap: wrap; }
+.btn-filtro { background: #f3ece4; color: #8a6c51; border: none; padding: 10px 25px; border-radius: 30px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.3s; }
+.btn-filtro.activo, .btn-filtro:hover { background: var(--color-primario); color: white; }
+
+.grid-servicios { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+.card-servicio { background: var(--bg-blanco); border-radius: 12px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); text-align: left; border: 1px solid #eaeaea; transition: 0.3s; }
+.card-servicio:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: translateY(-5px); }
+.badge-categoria { display: inline-block; background: var(--color-primario); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 15px; }
+.card-servicio h3 { font-size: 20px; font-weight: 600; margin-bottom: 10px; color: var(--texto-oscuro); }
+.card-servicio p { color: var(--texto-gris); font-size: 14px; line-height: 1.6; margin-bottom: 20px; min-height: 45px; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eaeaea; padding-top: 15px; }
+.card-precio { font-size: 20px; font-weight: 800; color: var(--texto-oscuro); }
+
+/* --- FOOTER --- */
+.footer-section { background-color: var(--color-footer); color: white; padding: 60px 0 20px; }
+.footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 50px; margin-bottom: 40px; }
+.logo-footer { font-family: 'Times New Roman', Times, serif; font-size: 28px; margin-bottom: 20px; }
+.footer-col h4 { margin-bottom: 25px; font-weight: 600; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: inline-block; }
+.footer-col a, .footer-col p { color: #aaaaaa; text-decoration: none; transition: 0.3s; font-size: 14px; line-height: 1.8; }
+.footer-col a:hover { color: var(--color-primario); }
+.footer-bottom { text-align: center; color: #666; font-size: 13px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+/* --- SISTEMAS INTERNOS --- */
+.vista-activa { display: block; }
+.seccion-oculta { display: none !important; }
+
+.sistema-section { 
+    min-height: 100vh; position: relative; display: flex; align-items: center; justify-content: center; padding: 40px 20px; 
+}
+.fondo-sistema-interno {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: url('https://images.unsplash.com/photo-1521590832167-7bfc17484d20?auto=format&fit=crop&w=1920&q=80') center/cover fixed;
+    filter: brightness(0.6); z-index: -1;
+}
+
+.caja-translucida {
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+    border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.5);
+    position: relative; z-index: 2;
+}
+.auth-container { width: 100%; max-width: 450px; }
+.form-box { padding: 40px; text-align: center; position: relative; }
+.form-box h2 { font-size: 26px; font-weight: 600; margin-bottom: 25px; color: var(--texto-oscuro); }
+
+/* BOTÓN X LOGIN */
+.btn-cerrar-auth {
+    position: absolute; top: 15px; right: 15px; background: none; border: none; 
+    font-size: 20px; cursor: pointer; color: #888; transition: 0.3s;
+}
+.btn-cerrar-auth:hover { color: #111; }
+
+.tabs-login { display: flex; justify-content: center; margin-bottom: 25px; border-bottom: 1px solid #ccc; }
+.tab-btn { background: none; border: none; padding: 10px 20px; font-size: 14px; color: var(--texto-gris); cursor: pointer; transition: 0.3s; font-weight: 600; }
+.tab-btn.active { color: var(--texto-oscuro); border-bottom: 3px solid var(--color-primario); }
+
+.input-group { text-align: left; margin-bottom: 15px; }
+.input-group label { display: block; font-size: 12px; color: var(--texto-gris); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; }
+.input-group input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #aaa; padding: 10px 0; outline: none; transition: 0.3s; font-size: 14px; }
+.input-group input:focus { border-bottom: 2px solid var(--color-primario); }
+
+/* CONTENEDOR CONTRASEÑA E INTERRUPTOR "OJO" */
+.password-wrapper { position: relative; display: block; width: 100%; }
+.password-wrapper input { padding-right: 35px; }
+.toggle-password { position: absolute; right: 0; bottom: 10px; cursor: pointer; color: var(--texto-gris); transition: 0.3s; display: flex; align-items: center; justify-content: center; }
+.toggle-password:hover { color: var(--color-primario); }
+
+/* --- PANEL CLIENTE --- */
+.dashboard-container {
+    width: 100%; max-width: 1000px; background: #ffffff; padding: 50px; 
+    border-radius: 16px; box-shadow: 0 4px 30px rgba(0,0,0,0.05); margin: 0 auto;
+}
+
+.header-cliente { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.header-cliente h2 { font-size: 32px; font-weight: 600; color: #111; }
+.btn-configuracion { background: #fff; border: 1px solid #ddd; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; color: #333; cursor: pointer; transition: 0.3s; }
+.btn-configuracion:hover { border-color: #999; }
+
+.tabs-cliente { display: flex; background: #f3f4f6; border-radius: 30px; padding: 5px; margin-bottom: 40px; }
+.tab-cli { flex: 1; display: flex; align-items: center; justify-content: center; border: none; background: transparent; padding: 12px; font-weight: 600; font-size: 14px; border-radius: 30px; cursor: pointer; color: #555; transition: 0.3s; }
+.tab-cli.active { background: #ffffff; color: #111; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+.reservas-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.reservas-header h3 { font-size: 20px; font-weight: 600; color: #111; }
+.btn-nueva-reserva { background: var(--color-primario); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn-nueva-reserva:hover { background: var(--color-primario-hover); }
+.btn-outline-dark { background: transparent; border: 1px solid #ccc; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.3s; }
+.btn-outline-dark:hover { background: #f0f0f0; }
+
+.lista-reservas { display: flex; flex-direction: column; gap: 15px; }
+.reserva-card { display: flex; justify-content: space-between; align-items: center; border: 1px solid #eaeaea; padding: 25px; border-radius: 12px; background: #ffffff; }
+.reserva-info h4 { font-size: 18px; color: #111; margin-bottom: 8px; font-weight: 600;}
+.reserva-info p { font-size: 14px; color: #777; margin-bottom: 4px; }
+
+.badge { padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.badge.confirmada { background: #d1fae5; color: #065f46; }
+.badge.pendiente { background: #fef08a; color: #854d0e; }
+
+.dash-card { background: #fff; padding: 30px; border-radius: 12px; border: 1px solid #eaeaea; }
+.comisiones-box { margin-top: 10px; font-size: 14px; color: var(--texto-oscuro); }
+.comision-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eaeaea; display: flex; justify-content: space-between;}
+
+/* --- TABLAS ADMIN --- */
+.admin-table-container { overflow-x: auto; padding: 0 !important; }
+.admin-table { width: 100%; border-collapse: collapse; text-align: left; }
+.admin-table th, .admin-table td { padding: 15px 20px; border-bottom: 1px solid #eaeaea; font-size: 14px; }
+.admin-table th { background-color: #f9f9f9; font-weight: 600; color: #444; }
+.admin-table tr:hover { background-color: #fafafa; }
+.btn-table { padding: 6px 12px; background: #eee; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
+.btn-table:hover { background: var(--color-primario); color: white; }
+
+/* --- MODALES --- */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center; z-index: 2000;
+}
+.modal-content {
+    width: 100%; max-width: 450px; padding: 40px; text-align: left; position: relative;
+}
+
+/* --- FORGOT PASSWORD LINK --- */
+.forgot-password-link {
+    text-align: right; margin-top: 12px; font-size: 13px; color: var(--color-primario);
+    cursor: pointer; transition: 0.3s; text-decoration: underline;
+}
+.forgot-password-link:hover { color: var(--color-primario-hover); }
+.btn-volver-login {
+    background: none; border: none; color: #666; font-size: 13px; cursor: pointer;
+    margin-top: 15px; text-decoration: underline; transition: 0.3s;
+}
+.btn-volver-login:hover { color: #111; }
+
+/* --- TOAST NOTIFICATION --- */
+.toast {
+    position: fixed; top: 90px; right: 20px; z-index: 3000;
+    background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    min-width: 320px; max-width: 420px;
+    transform: translateX(120%); transition: transform 0.4s ease;
+    border-left: 4px solid #28a745;
+}
+.toast.mostrar { transform: translateX(0); }
+.toast.error { border-left-color: #dc3545; }
+.toast-icon {
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0; font-weight: bold;
+    background: #d1fae5; color: #065f46;
+}
+.toast.error .toast-icon { background: #fee2e2; color: #991b1b; }
+.toast-text { flex: 1; font-size: 14px; color: #333; line-height: 1.5; }
+.toast-close {
+    background: none; border: none; font-size: 16px; cursor: pointer;
+    color: #999; padding: 4px; flex-shrink: 0; transition: 0.3s;
+}
+.toast-close:hover { color: #333; }
+
+/* --- CHIPS DE ESPECIALIDAD (en modal editar empleado) --- */
+.esp-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f3ece4; color: #8a6c51;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; margin: 4px 4px 4px 0;
+}
+.esp-chip button {
+    background: none; border: none; cursor: pointer;
+    color: #b58555; font-size: 14px; line-height: 1; padding: 0;
+}
+.esp-chip button:hover { color: #dc3545; }
+
+/* --- PAQUETE SERVICIOS CHECKBOXES --- */
+.paq-check-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 4px; border-bottom: 1px solid #f5f5f5;
+    font-size: 13px; cursor: pointer;
+}
+.paq-check-item:last-child { border-bottom: none; }
+.paq-check-item input[type="checkbox"] { accent-color: var(--color-primario); }
+
+/* --- DISPONIBILIDAD ESTADO (modal CU3) --- */
+.disp-ok    { color: #065f46; background: #d1fae5; padding: 8px 14px; border-radius: 6px; }
+.disp-error { color: #991b1b; background: #fee2e2; padding: 8px 14px; border-radius: 6px; }
+
+/* --- RESERVAS COLAPSABLES (panel cliente) --- */
+.reserva-acordeon { border: 1px solid #eaeaea; border-radius: 12px; margin-bottom: 12px; overflow: hidden; background: #fff; }
+.reserva-acordeon-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px 25px; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 15px; gap: 12px; text-align: left; transition: background 0.2s; }
+.reserva-acordeon-btn:hover { background: #faf8f6; }
+.reserva-acordeon-info { flex: 1; min-width: 0; }
+.reserva-acordeon-titulo { font-weight: 600; color: var(--texto-oscuro); display: block; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reserva-acordeon-fecha { font-size: 13px; color: #888; }
+.reserva-acordeon-detalle { padding: 15px 25px 20px; border-top: 1px solid #f0f0f0; font-size: 14px; color: #555; line-height: 1.9; display: none; }
+.reserva-acordeon-detalle.abierto { display: block; }
+.acordeon-arrow { font-size: 11px; color: #aaa; flex-shrink: 0; transition: transform 0.25s; }
+.acordeon-arrow.rotado { transform: rotate(180deg); }
+
+/* --- MULTI-ESTETICISTA CHECKBOXES (CU3 paquete) --- */
+.est-check-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #f0f0f0; font-size: 14px; cursor: pointer; }
+.est-check-item:last-child { border-bottom: none; }
+.est-check-item input[type="checkbox"] { accent-color: var(--color-primario); width: 16px; height: 16px; flex-shrink: 0; }
+
+/* --- BOTÓN CANCELAR RESERVA --- */
+.btn-cancelar-reserva {
+    padding: 7px 16px; background: #fee2e2; border: 1px solid #fca5a5;
+    border-radius: 8px; cursor: pointer; font-size: 13px;
+    font-weight: 600; color: #991b1b; transition: 0.2s;
+}
+.btn-cancelar-reserva:hover { background: #dc3545; color: white; border-color: #dc3545; }
+
+/* --- BOTÓN RESERVAR (usado en favoritos) --- */
+.btn-reservar {
+    padding: 7px 16px; background: var(--color-primario); border: none;
+    border-radius: 8px; cursor: pointer; font-size: 13px;
+    font-weight: 600; color: white; transition: 0.2s;
+}
+.btn-reservar:hover { opacity: 0.85; }
+
+/* --- BOTÓN LOGIN BLOQUEADO --- */
+#btn-login-submit:disabled { background: #ccc !important; cursor: not-allowed; opacity: 0.7; }
+
+/* --- BOTÓN ELIMINAR EN TABLAS --- */
+.btn-table-danger {
+    padding: 6px 12px; background: #fee2e2; border: none;
+    border-radius: 4px; cursor: pointer; font-size: 12px;
+    font-weight: 600; color: #991b1b; transition: 0.2s; margin-left: 4px;
+}
+.btn-table-danger:hover { background: #dc3545; color: white; }
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+/* --- HAMBURGER MENU - SIEMPRE VISIBLE --- */
+.menu-hamburguesa { 
+    display: flex !important; flex-direction: column; gap: 5px; cursor: pointer; 
+    margin-left: auto; padding: 0 15px;
+}
+.menu-hamburguesa .linea { width: 25px; height: 2px; background: var(--texto-oscuro); transition: 0.3s; }
+.menu-hamburguesa.active .linea:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.menu-hamburguesa.active .linea:nth-child(2) { opacity: 0; }
+.menu-hamburguesa.active .linea:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
+
+.nav-menu-movil { 
+    display: none; 
+    position: absolute; top: 75px; left: 0; right: 0;
+    background: white; max-height: 70vh; overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 1001;
+    padding: 20px;
+}
+.nav-menu-movil.active { display: block !important; }
+
+/* =========================================================
+   TABLET (max-width: 1024px)
+   ========================================================= */
+@media (max-width: 1024px) {
+    .hero-title { font-size: 60px; }
+    .hero-subtitle { font-size: 18px; }
+    .grid-servicios { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+    .dashboard-container { padding: 30px; }
+}
+
+/* =========================================================
+   MOBILE (max-width: 768px)
+   ========================================================= */
+@media (max-width: 768px) {
+    .menu-hamburguesa { display: flex; }
+
+    .nav-menu-movil {
+        position: absolute; top: 75px; left: 0; right: 0;
+        background: var(--bg-blanco); max-height: 70vh; overflow-y: auto;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1); z-index: 1001;
+        padding: 20px;
+    }
+
+    .nav-links {
+        flex-direction: column; align-items: center; gap: 0; padding: 0; box-shadow: none;
+    }
+    .nav-links li { width: 100%; text-align: center; }
+    .nav-links a { display: block; padding: 15px 20px; border-bottom: 1px solid #f0f0f0; }
+
+    .nav-actions {
+        display: flex !important; flex-direction: column; padding: 10px 20px; gap: 10px; width: 100%;
+        border-top: 1px solid #e0e0e0; margin-top: 5px;
+    }
+    .nav-actions button { width: 100%; text-align: center; padding: 12px; }
+
+    #nav-actions-logged {
+        flex-direction: row !important; justify-content: center; align-items: center; gap: 15px;
+    }
+    #nav-actions-logged button { width: auto; }
+
+    .hero-section { height: 60vh; padding-left: 5%; padding-right: 5%; }
+    .hero-title { font-size: 42px; }
+    .hero-subtitle { font-size: 16px; margin-bottom: 25px; }
+    .hero-buttons { flex-direction: column; gap: 10px; }
+    .hero-buttons button { width: 100%; padding: 12px; }
+
+    .section-header h2 { font-size: 28px; }
+    .grid-servicios { grid-template-columns: 1fr; }
+    .filtros-categoria { gap: 8px; }
+    .btn-filtro { padding: 8px 16px; font-size: 12px; }
+
+    .footer-grid { grid-template-columns: 1fr; gap: 30px; }
+
+    .auth-container { max-width: 95%; }
+    .form-box { padding: 30px 20px; }
+
+    .dashboard-container { max-width: 95%; padding: 20px; }
+    .header-cliente { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .tabs-cliente { flex-direction: column; border-radius: 12px; }
+    .tab-cli { border-radius: 8px; }
+
+    .reservas-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .reserva-card { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
+
+    .admin-table { font-size: 12px; }
+    .admin-table th, .admin-table td { padding: 10px 8px; }
+
+    .modal-content { max-width: 95%; padding: 25px 15px; margin: 10px; }
+}
+
+/* =========================================================
+   SMALL MOBILE (max-width: 480px)
+   ========================================================= */
+@media (max-width: 480px) {
+    .navbar { height: 60px; }
+    .nav-container { width: 95%; }
+    .logo-nav { font-size: 20px; }
+    .nav-menu-movil { top: 60px; }
+
+    .hero-section { height: 50vh; }
+    .hero-title { font-size: 32px; }
+    .hero-subtitle { font-size: 14px; }
+
+    .section-header { padding-top: 50px; }
+    .section-header h2 { font-size: 24px; }
+
+    .form-box h2 { font-size: 22px; }
+    .header-cliente h2 { font-size: 24px; }
+
+    .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
+    .toast { min-width: auto; max-width: calc(100% - 40px); right: 10px; left: 10px; }
+}

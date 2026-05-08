@@ -1,0 +1,1066 @@
+// --- NAVEGACIÓN Y VISTAS ---
+const mainLanding = document.getElementById('main-landing');
+const seccionesSistema = document.querySelectorAll('.sistema-section');
+const navbar = document.getElementById('navbar');
+let usuarioActual = null;
+let catalogoCompleto = []; 
+let menuUsuario = [];
+const API_BASE = 'http://localhost:3000';
+
+document.addEventListener('DOMContentLoaded', () => {
+    cargarServiciosDeBD();
+    cargarDropdownsEstaticos(); 
+    configurarRecuperacion();
+
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('nav-links');
+
+    if (hamburger) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('mobile-open');
+        });
+    }
+
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (hamburger) hamburger.classList.remove('active');
+            if (navLinks) navLinks.classList.remove('mobile-open');
+        });
+    });
+});
+}
+
+function mostrarSubmenuCasosUso(paquete) {
+    if (!paquete || !paquete.cus) return;
+
+    const navLinks = document.getElementById('nav-links');
+    if (!navLinks) return;
+
+    navLinks.innerHTML = '';
+
+    // Botón volver
+    const liVolver = document.createElement('li');
+    const aVolver = document.createElement('a');
+    aVolver.href = '#';
+    aVolver.textContent = '← ' + paquete.nombre;
+    aVolver.onclick = (e) => { e.preventDefault(); renderizarMenuNavegacion(); };
+    liVolver.appendChild(aVolver);
+    navLinks.appendChild(liVolver);
+
+    // Mostrar CUs
+    paquete.cus.forEach(cu => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = cu.nombre;
+        a.title = cu.descripcion;
+        a.onclick = (e) => {
+            e.preventDefault();
+            alert('Ejecutando: ' + cu.nombre + '\n(Ruta: ' + (cu.ruta || '/') + ')');
+            // Aquí iría la navegación real a cada CU
+        };
+        li.appendChild(a);
+        navLinks.appendChild(li);
+    });
+
+    // Cerrar sesión
+    const liSalir = document.createElement('li');
+    const aSalir = document.createElement('a');
+    aSalir.href = '#';
+    aSalir.textContent = 'Cerrar Sesión';
+    aSalir.style.color = '#dc3545';
+    aSalir.onclick = (e) => { e.preventDefault(); cerrarSesion(); };
+    liSalir.appendChild(aSalir);
+    navLinks.appendChild(liSalir);
+}
+
+async function cargarMenuUsuario(ci) {
+    try {
+        const res = await fetch(`${API_BASE}/api/menus-usuario/${ci}`);
+        const data = await res.json();
+        if (data.success) {
+            menuUsuario = data.menu;
+            renderizarMenuNavegacion();
+        }
+    } catch (err) { console.error('Error cargando menú:', err); }
+}
+
+function mostrarSeccion(idSeccion) {
+    window.scrollTo(0, 0);
+    if (idSeccion === 'landing') {
+        mainLanding.classList.remove('seccion-oculta');
+        seccionesSistema.forEach(sec => sec.classList.add('seccion-oculta'));
+        navbar.style.display = 'flex';
+    } else {
+        mainLanding.classList.add('seccion-oculta');
+        seccionesSistema.forEach(sec => sec.classList.add('seccion-oculta'));
+        document.getElementById(idSeccion).classList.remove('seccion-oculta');
+        
+        if(idSeccion === 'login') navbar.style.display = 'none';
+        else navbar.style.display = 'flex';
+    }
+    renderizarMenuNavegacion();
+}
+
+function actualizarNavbar() {
+    if(usuarioActual) {
+        document.getElementById('nav-actions-public').style.display = 'none';
+        document.getElementById('nav-actions-logged').style.display = 'flex';
+        document.getElementById('nav-user-name').innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            ${usuarioActual.nombre.split(' ')[0]} (${usuarioActual.rol})
+        `;
+        cargarMenuUsuario(usuarioActual.ci);
+    } else {
+        menuUsuario = [];
+        document.getElementById('nav-actions-public').style.display = 'flex';
+        document.getElementById('nav-actions-logged').style.display = 'none';
+    }
+}
+
+function mostrarSeccion(idSeccion) {
+    window.scrollTo(0, 0);
+    if (idSeccion === 'landing') {
+        mainLanding.classList.remove('seccion-oculta');
+        seccionesSistema.forEach(sec => sec.classList.add('seccion-oculta'));
+        navbar.style.display = 'flex';
+    } else {
+        mainLanding.classList.add('seccion-oculta');
+        seccionesSistema.forEach(sec => sec.classList.add('seccion-oculta'));
+        const seccion = document.getElementById(idSeccion);
+        if (seccion) seccion.classList.remove('seccion-oculta');
+        
+        if(idSeccion === 'login') navbar.style.display = 'none';
+        else navbar.style.display = 'flex';
+    }
+}
+    window.scrollTo(0, 0);
+    if (idSeccion === 'landing') {
+        mainLanding.classList.remove('seccion-oculta');
+        seccionesSistema.forEach(sec => sec.classList.add('seccion-oculta'));
+        navbar.style.display = 'flex';
+    } else {
+        mainLanding.classList.add('seccion-oculta');
+        seccionesSistema.forEach(sec => sec.classList.add('seccion-oculta'));
+        document.getElementById(idSeccion).classList.remove('seccion-oculta');
+        
+        if(idSeccion === 'login') navbar.style.display = 'none';
+        else navbar.style.display = 'flex';
+    }
+}
+
+function irAInicio() { mostrarSeccion('landing'); }
+function irARegistro() { mostrarSeccion('login'); cambiarPestana('registro'); }
+
+function cambiarPestana(pestana) {
+    const formLogin = document.getElementById('login-form');
+    const formRegistro = document.getElementById('registro-form');
+    const btnLogin = document.getElementById('btn-tab-login');
+    const btnRegistro = document.getElementById('btn-tab-registro');
+
+    if (pestana === 'login') {
+        formLogin.style.display = 'block'; formRegistro.style.display = 'none';
+        btnLogin.classList.add('active'); btnRegistro.classList.remove('active');
+    } else {
+        formLogin.style.display = 'none'; formRegistro.style.display = 'block';
+        btnLogin.classList.remove('active'); btnRegistro.classList.add('active');
+    }
+}
+
+function togglePasswordVisibility(inputId, iconSpan) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconSpan.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+    } else {
+        input.type = 'password';
+        iconSpan.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    }
+}
+
+// --- CARGA DE DROPDOWNS DESDE BD ---
+async function cargarDropdownsEstaticos() {
+    try {
+        const resCat = await fetch('http://localhost:3000/api/categorias');
+        const dataCat = await resCat.json();
+        if(dataCat.success) {
+            const selectCat = document.getElementById('admin-serv-cat');
+            if(selectCat) {
+                selectCat.innerHTML = '';
+                dataCat.categorias.forEach(c => {
+                    selectCat.innerHTML += `<option value="${c.id_categoria}">${c.nombre}</option>`;
+                });
+            }
+        }
+        const resEsp = await fetch('http://localhost:3000/api/especialidades');
+        const dataEsp = await resEsp.json();
+        if(dataEsp.success) {
+            const selectEsp = document.getElementById('admin-emp-esp');
+            if(selectEsp) {
+                selectEsp.innerHTML = '';
+                dataEsp.especialidades.forEach(e => {
+                    selectEsp.innerHTML += `<option value="${e.id_especialidad}">${e.nombre_especialidad}</option>`;
+                });
+            }
+        }
+    } catch(err) { console.error("Error al cargar dropdowns dinámicos", err); }
+}
+
+// --- LÓGICA DE CATÁLOGO ---
+async function cargarServiciosDeBD() {
+    const contenedor = document.getElementById('contenedor-servicios');
+    if(contenedor) contenedor.innerHTML = '<p style="text-align:center; width:100%; color:#666;">Cargando catálogo...</p>';
+
+    try {
+        const res = await fetch('http://localhost:3000/api/servicios');
+        const data = await res.json();
+        if (data.success) {
+            catalogoCompleto = [
+                ...(data.paquetes || []).map(p => ({ ...p, tipo_dato: 'paquete' })),
+                ...(data.servicios || []).map(s => ({ ...s, tipo_dato: 'individual' }))
+            ];
+            const btnActivo = document.querySelector('.btn-filtro.activo');
+            if(contenedor && btnActivo) filtrarServicios('todos', btnActivo);
+            
+            if(usuarioActual && usuarioActual.rol === 'Administrador') {
+                renderizarTablaAdminServicios(data.servicios || []);
+            }
+        }
+    } catch (error) { console.error("Error al obtener servicios"); }
+}
+
+function filtrarServicios(filtro, btnPresionado) {
+    const contenedor = document.getElementById('contenedor-servicios');
+    if(!contenedor) return;
+    contenedor.innerHTML = ''; 
+
+    if(btnPresionado) {
+        document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('activo'));
+        btnPresionado.classList.add('activo');
+    }
+
+    let lista = catalogoCompleto;
+    if (filtro === 'paquetes') lista = catalogoCompleto.filter(s => s.tipo_dato === 'paquete');
+    else if (filtro === 'cabello') lista = catalogoCompleto.filter(s => s.nombre_categoria && (s.nombre_categoria.toLowerCase().includes('peluquería') || s.nombre_categoria.toLowerCase().includes('colorimetría') || s.nombre_categoria.toLowerCase().includes('barbería') || s.nombre_categoria.toLowerCase().includes('tratamientos')));
+    else if (filtro === 'uñas') lista = catalogoCompleto.filter(s => s.nombre_categoria && (s.nombre_categoria.toLowerCase().includes('manicura') || s.nombre_categoria.toLowerCase().includes('pedicura')));
+    else if (filtro === 'faciales') lista = catalogoCompleto.filter(s => s.nombre_categoria && (s.nombre_categoria.toLowerCase().includes('facial') || s.nombre_categoria.toLowerCase().includes('depilación')));
+    else if (filtro === 'masajes') lista = catalogoCompleto.filter(s => s.nombre_categoria && s.nombre_categoria.toLowerCase().includes('masajes'));
+    else if (filtro === 'maquillaje') lista = catalogoCompleto.filter(s => s.nombre_categoria && s.nombre_categoria.toLowerCase().includes('maquillaje'));
+
+    if(lista.length === 0) {
+        contenedor.innerHTML = '<p style="color:#666; width:100%; text-align:center; padding:40px;">No hay servicios para esta categoría.</p>';
+        return;
+    }
+
+    lista.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'card-servicio';
+        const nombreItem = item.nombre_servicio || item.nombre || 'Servicio';
+        const precioLimpio = parseFloat(String(item.precio || item.precio_promocional || 0).replace(/[^0-9.-]+/g,"")) || 0;
+        const categoriaBadge = item.tipo_dato === 'paquete' ? 'PAQUETE' : (item.nombre_categoria || 'Servicio');
+
+        div.innerHTML = `
+            <span class="badge-categoria">${categoriaBadge.toUpperCase()}</span>
+            <h3>${nombreItem}</h3>
+            <p>${item.descripcion || 'Tratamiento profesional ejecutado por nuestro equipo experto.'}</p>
+            <div class="card-footer">
+                <div class="card-precio">${precioLimpio.toFixed(2)} Bs</div>
+                <button class="btn-registrarse" onclick="mostrarSeccion('login')">Reservar</button>
+            </div>
+        `;
+        contenedor.appendChild(div);
+    });
+}
+
+function actualizarNavbar() {
+    if(usuarioActual) {
+        document.getElementById('nav-actions-public').style.display = 'none';
+        document.getElementById('nav-actions-logged').style.display = 'flex';
+        document.getElementById('nav-user-name').innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            ${usuarioActual.nombre.split(' ')[0]} (${usuarioActual.rol})
+        `;
+    } else {
+        document.getElementById('nav-actions-public').style.display = 'flex';
+        document.getElementById('nav-actions-logged').style.display = 'none';
+    }
+}
+
+// --- LOGIN ---
+const loginForm = document.getElementById('login-form');
+if(loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const contrasena = document.getElementById('password').value;
+
+        try {
+            const res = await fetch('http://localhost:3000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, contrasena })
+            });
+            const data = await res.json();
+
+        if (res.ok && data.success) {
+            usuarioActual = data.user; 
+            loginForm.reset();
+            actualizarNavbar();
+            cargarMenuUsuario(usuarioActual.ci);
+            
+            if (usuarioActual.rol === 'Administrador') {
+                mostrarSeccion('panel-admin');
+                cargarServiciosDeBD(); 
+                cargarEmpleadosAdmin();
+            } else if (usuarioActual.rol === 'Personal') {
+                mostrarSeccion('panel-personal');
+                consultarComisiones(); 
+            } else {
+                mostrarSeccion('panel-cliente');
+            }
+            } else {
+                alert("❌ " + data.message);
+            }
+        } catch (err) { alert("Error de conexión al servidor."); }
+    });
+}
+
+// --- REGISTRO DE CLIENTE ---
+const registroForm = document.getElementById('registro-form');
+if(registroForm) {
+    registroForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ci = document.getElementById('reg-ci').value;
+        const nombre = document.getElementById('reg-nombre').value;
+        const telefono = document.getElementById('reg-telefono').value;
+        const email = document.getElementById('reg-email').value;
+        const contrasena = document.getElementById('reg-password').value;
+
+        if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(contrasena)) {
+            alert("⚠️ La contraseña debe contener al menos un NÚMERO, una MAYÚSCULA y un CARÁCTER ESPECIAL.");
+            return; 
+        }
+
+        try {
+            const res = await fetch('http://localhost:3000/registro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ci, nombre, telefono, email, contrasena })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert(data.message);
+                registroForm.reset();
+                cambiarPestana('login'); 
+            } else { alert(data.message); }
+        } catch (err) { alert("Error al conectar con servidor."); }
+    });
+}
+
+// --- PESTAÑAS: PANEL DE PERSONAL ---
+function cambiarTabPersonal(tab) {
+    document.getElementById('tab-pers-agenda').classList.remove('active');
+    document.getElementById('tab-pers-comisiones').classList.remove('active');
+    document.getElementById('vista-pers-agenda').classList.add('seccion-oculta');
+    document.getElementById('vista-pers-comisiones').classList.add('seccion-oculta');
+
+    if(tab === 'agenda') {
+        document.getElementById('tab-pers-agenda').classList.add('active');
+        document.getElementById('vista-pers-agenda').classList.remove('seccion-oculta');
+    } else {
+        document.getElementById('tab-pers-comisiones').classList.add('active');
+        document.getElementById('vista-pers-comisiones').classList.remove('seccion-oculta');
+    }
+}
+
+async function consultarComisiones() {
+    if (!usuarioActual || !usuarioActual.ci) return;
+    const divResultado = document.getElementById('resultado-comisiones');
+    divResultado.innerHTML = 'Cargando registros...';
+
+    try {
+        const res = await fetch(`http://localhost:3000/api/comisiones/${usuarioActual.ci}`);
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.comisiones.length === 0) {
+                divResultado.innerHTML = '<p>No tienes comisiones registradas aún.</p>';
+                return;
+            }
+            let html = ''; let totalCobrar = 0;
+            data.comisiones.forEach(c => {
+                const fecha = new Date(c.fecha).toLocaleDateString('es-BO');
+                const monto = parseFloat(c.monto_comision).toFixed(2);
+                const colorEstado = c.estado_pago === 'Pendiente' ? '#c2956e' : '#28a745'; 
+                html += `
+                    <div class="comision-item">
+                        <span><strong>${fecha}</strong> - Bs. ${monto}</span>
+                        <span style="color: ${colorEstado}; font-weight: bold;">${c.estado_pago}</span>
+                    </div>
+                `;
+                if(c.estado_pago === 'Pendiente') totalCobrar += parseFloat(monto);
+            });
+            html += `<div style="margin-top: 15px; font-size: 16px;">
+                        <strong>Total Pendiente: <span style="color: #c2956e;">Bs. ${totalCobrar.toFixed(2)}</span></strong>
+                     </div>`;
+            divResultado.innerHTML = html;
+        } else { divResultado.innerHTML = '<span style="color: red;">Error en BD.</span>'; }
+    } catch (e) { divResultado.innerHTML = '<span style="color: red;">Error de servidor.</span>'; }
+}
+
+// --- PESTAÑAS Y LÓGICA: PANEL DE ADMINISTRADOR ---
+function cambiarTabAdmin(tab) {
+    document.getElementById('tab-admin-servicios').classList.remove('active');
+    document.getElementById('tab-admin-empleados').classList.remove('active');
+    document.getElementById('tab-admin-sesiones').classList.remove('active');
+    document.getElementById('tab-admin-privilegios').classList.remove('active');
+    
+    document.getElementById('vista-admin-servicios').classList.add('seccion-oculta');
+    document.getElementById('vista-admin-empleados').classList.add('seccion-oculta');
+    document.getElementById('vista-admin-sesiones').classList.add('seccion-oculta');
+    document.getElementById('vista-admin-privilegios').classList.add('seccion-oculta');
+
+    if(tab === 'servicios') {
+        document.getElementById('tab-admin-servicios').classList.add('active');
+        document.getElementById('vista-admin-servicios').classList.remove('seccion-oculta');
+    } else if(tab === 'empleados') {
+        document.getElementById('tab-admin-empleados').classList.add('active');
+        document.getElementById('vista-admin-empleados').classList.remove('seccion-oculta');
+        cargarEmpleadosAdmin();
+    } else if(tab === 'sesiones') {
+        document.getElementById('tab-admin-sesiones').classList.add('active');
+        document.getElementById('vista-admin-sesiones').classList.remove('seccion-oculta');
+        cargarSesionesAdmin();
+    } else if(tab === 'privilegios') {
+        document.getElementById('tab-admin-privilegios').classList.add('active');
+        document.getElementById('vista-admin-privilegios').classList.remove('seccion-oculta');
+    }
+}
+
+async function cargarPrivilegiosAdmin() {
+    const ci = document.getElementById('admin-buscar-ci').value.trim();
+    if (!ci) { alert('Ingresa un CI'); return; }
+
+    const lista = document.getElementById('admin-privilegios-lista');
+    lista.innerHTML = 'Cargando...';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/privilegios/${ci}`);
+        const data = await res.json();
+        if (!data.success) { lista.innerHTML = '<p style="color:red;">Error</p>'; return; }
+
+        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+        let paqueteActual = null;
+
+        data.privilegios.forEach(p => {
+            if (!paqueteActual || paqueteActual !== p.id_paquete_sist) {
+                if (paqueteActual !== null) html += '</div></div>';
+                paqueteActual = p.id_paquete_sist;
+                const nombrePaquete = 
+                    paqueteActual === 1 ? 'Seguridad' :
+                    paqueteActual === 2 ? 'Reservas' :
+                    paqueteActual === 3 ? 'Caja y Finanzas' :
+                    paqueteActual === 4 ? 'Servicios' :
+                    paqueteActual === 5 ? 'Personal' : 'Otro';
+                html += `
+                    <div style="border:1px solid #eaeaea; border-radius:8px; padding:15px;">
+                        <h4 style="margin:0 0 10px 0; color: var(--color-primario);">${nombrePaquete}</h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                `;
+            }
+            const checked = p.tiene ? 'checked' : '';
+            html += `
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 4px; ${p.tiene ? 'background: #f0fff4;' : ''}">
+                    <input type="checkbox" ${checked} onchange="togglePrivilegio('${ci}', ${p.id_cu}, this.checked)">
+                    <span>${p.nombre_cu} (CU${p.id_cu})</span>
+                </label>
+            `;
+        });
+        html += '</div></div></div>';
+        lista.innerHTML = html;
+    } catch (err) {
+        lista.innerHTML = '<p style="color:red;">Error de conexion</p>';
+    }
+}
+
+async function togglePrivilegio(ci, id_cu, habilitado) {
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/privilegios`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ci_usuario: ci, id_cu, habilitado })
+        });
+        const data = await res.json();
+        if (!data.success) alert('Error: ' + data.message);
+    } catch (err) { alert('Error de conexion'); }
+}
+            html += `
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 4px; transition: 0.2s; ${p.tiene ? 'background: #f0fff4;' : ''}" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='${p.tiene ? '#f0fff4' : ''}'">
+                    <input type="checkbox" ${p.tiene ? 'checked' : ''} onchange="togglePrivilegio('${ci}', ${p.id_cu}, this.checked)">
+                    <span>${p.nombre_cu}</span>
+                </label>
+            `;
+        });
+        html += '</div></div></div>';
+        lista.innerHTML = html;
+    } catch (err) {
+        lista.innerHTML = '<p style="color:red;">Error de conexión</p>';
+    }
+}
+
+async function togglePrivilegio(ci, id_cu, habilitado) {
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/privilegios`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ci_usuario: ci, id_cu, habilitado })
+        });
+        const data = await res.json();
+        if (!data.success) alert('Error: ' + data.message);
+    } catch (err) { alert('Error de conexión'); }
+}
+
+async function cargarSesionesAdmin() {
+    const tbody = document.getElementById('tabla-admin-sesiones-body');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Cargando...</td></tr>';
+    try {
+        const res = await fetch('http://localhost:3000/api/admin/sesiones');
+        const data = await res.json();
+        if (data.success && data.sesiones.length > 0) {
+            tbody.innerHTML = '';
+            data.sesiones.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${s.nombre}</strong></td>
+                    <td>${s.email}</td>
+                    <td><span class="badge ${s.rol === 'Administrador' ? 'confirmada' : 'pendiente'}">${s.rol}</span></td>
+                    <td>${s.fecha}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay sesiones recientes.</td></tr>'; }
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Error.</td></tr>'; }
+}
+
+async function cargarEmpleadosAdmin() {
+    const tbody = document.getElementById('tabla-admin-empleados-body');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Cargando empleados...</td></tr>';
+    try {
+        const res = await fetch('http://localhost:3000/api/admin/empleados');
+        const data = await res.json();
+        if (data.success && data.empleados.length > 0) {
+            tbody.innerHTML = '';
+            data.empleados.forEach(emp => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${emp.nombre}</strong></td>
+                    <td>${emp.ci}</td>
+                    <td>${emp.telefono || '-'}</td>
+                    <td>${emp.email}</td>
+                    <td><span class="badge pendiente">${emp.especialidades || 'Sin Especialidad'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay empleados registrados.</td></tr>'; }
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error al cargar.</td></tr>'; }
+}
+
+function abrirModalAdminEmpleado() {
+    document.getElementById('form-admin-empleado').reset();
+    document.getElementById('modal-admin-empleado').classList.remove('seccion-oculta');
+}
+function cerrarModalAdminEmpleado() {
+    document.getElementById('modal-admin-empleado').classList.add('seccion-oculta');
+}
+
+const formAdminEmpleado = document.getElementById('form-admin-empleado');
+if(formAdminEmpleado) {
+    formAdminEmpleado.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const bodyData = {
+            ci: document.getElementById('admin-emp-ci').value,
+            nombre: document.getElementById('admin-emp-nombre').value,
+            telefono: document.getElementById('admin-emp-tel').value,
+            email: document.getElementById('admin-emp-email').value,
+            contrasena: document.getElementById('admin-emp-pass').value,
+            id_especialidad: document.getElementById('admin-emp-esp').value
+        };
+
+        if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(bodyData.contrasena)) {
+            alert("⚠️ La contraseña debe contener NÚMERO, MAYÚSCULA y SÍMBOLO.");
+            return;
+        }
+
+        try {
+            const res = await fetch('http://localhost:3000/api/admin/empleados', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert("✅ " + data.message);
+                cerrarModalAdminEmpleado();
+                cargarEmpleadosAdmin(); 
+            } else { alert("❌ " + data.message); }
+        } catch(err) { alert("Error al registrar empleado."); }
+    });
+}
+
+function renderizarTablaAdminServicios(serviciosIndividuales) {
+    const tbody = document.getElementById('tabla-admin-servicios-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    serviciosIndividuales.forEach(s => {
+        const tr = document.createElement('tr');
+        const precio = parseFloat(s.precio).toFixed(2);
+        const cat = s.nombre_categoria || 'General';
+        const btnEdit = `<button class="btn-table" onclick="prepararEdicionServicio(${s.id_servicio}, '${s.nombre_servicio.replace(/'/g, "\\'")}', '${(s.descripcion||'').replace(/'/g, "\\'")}', ${precio}, ${s.id_categoria || 1})">Editar</button>`;
+        tr.innerHTML = `
+            <td>${s.id_servicio}</td>
+            <td><strong>${s.nombre_servicio}</strong></td>
+            <td>${precio} Bs.</td>
+            <td>${cat}</td>
+            <td>${btnEdit}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function abrirModalAdminServicio() {
+    document.getElementById('form-admin-servicio').reset();
+    document.getElementById('admin-serv-id').value = '';
+    document.getElementById('titulo-modal-servicio').innerText = 'Nuevo Servicio';
+    document.getElementById('modal-admin-servicio').classList.remove('seccion-oculta');
+}
+function cerrarModalAdminServicio() {
+    document.getElementById('modal-admin-servicio').classList.add('seccion-oculta');
+}
+function prepararEdicionServicio(id, nombre, desc, precio, id_cat) {
+    document.getElementById('admin-serv-id').value = id;
+    document.getElementById('admin-serv-nombre').value = nombre;
+    document.getElementById('admin-serv-desc').value = desc;
+    document.getElementById('admin-serv-precio').value = precio;
+    document.getElementById('admin-serv-cat').value = id_cat;
+    document.getElementById('titulo-modal-servicio').innerText = 'Editar Servicio ID: ' + id;
+    document.getElementById('modal-admin-servicio').classList.remove('seccion-oculta');
+}
+
+const formAdminServicio = document.getElementById('form-admin-servicio');
+if(formAdminServicio) {
+    formAdminServicio.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('admin-serv-id').value;
+        const bodyData = {
+            nombre_servicio: document.getElementById('admin-serv-nombre').value,
+            descripcion: document.getElementById('admin-serv-desc').value,
+            precio: parseFloat(document.getElementById('admin-serv-precio').value),
+            id_categoria: parseInt(document.getElementById('admin-serv-cat').value)
+        };
+        const url = id ? `http://localhost:3000/api/admin/servicios/${id}` : 'http://localhost:3000/api/admin/servicios';
+        const method = id ? 'PUT' : 'POST';
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert("✅ " + data.message);
+                cerrarModalAdminServicio();
+                cargarServiciosDeBD(); 
+            } else { alert("❌ " + data.message); }
+        } catch(err) { alert("Error al guardar el servicio."); }
+    });
+}
+
+// --- MODAL DE CONFIGURACIÓN RESTAURADO ---
+function abrirModalConfig() {
+    document.getElementById('modal-configuracion').classList.remove('seccion-oculta');
+    cambiarTabModal('seguridad'); 
+}
+
+function cerrarModalConfig() {
+    document.getElementById('modal-configuracion').classList.add('seccion-oculta');
+    document.getElementById('form-cambio-password').reset();
+    document.getElementById('form-editar-perfil').reset();
+}
+
+function cambiarTabModal(tab) {
+    document.getElementById('tab-mod-seguridad').classList.remove('active');
+    document.getElementById('tab-mod-perfil').classList.remove('active');
+    document.getElementById('tab-mod-notif').classList.remove('active');
+    
+    document.getElementById('form-cambio-password').style.display = 'none';
+    document.getElementById('form-editar-perfil').style.display = 'none';
+    document.getElementById('form-preferencias').style.display = 'none';
+
+    if(tab === 'seguridad') {
+        document.getElementById('tab-mod-seguridad').classList.add('active');
+        document.getElementById('form-cambio-password').style.display = 'block';
+    } else if (tab === 'perfil') {
+        document.getElementById('tab-mod-perfil').classList.add('active');
+        document.getElementById('form-editar-perfil').style.display = 'block';
+    } else if (tab === 'notificaciones') {
+        document.getElementById('tab-mod-notif').classList.add('active');
+        document.getElementById('form-preferencias').style.display = 'block';
+    }
+}
+
+const formCambioPassword = document.getElementById('form-cambio-password');
+if(formCambioPassword) {
+    formCambioPassword.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!usuarioActual) return;
+
+        const passwordActual = document.getElementById('pass-actual').value;
+        const passwordNueva = document.getElementById('pass-nueva').value;
+
+        if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(passwordNueva)) {
+            alert("⚠️ La nueva contraseña debe contener NÚMERO, MAYÚSCULA y SÍMBOLO.");
+            return;
+        }
+
+        try {
+            const res = await fetch('http://localhost:3000/cambiar-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: usuarioActual.email, passwordActual, passwordNueva })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert("✅ " + data.message);
+                cerrarModalConfig();
+            } else { alert("❌ " + data.message); }
+        } catch (err) { alert("Error de conexión."); }
+    });
+}
+
+// --- TOAST NOTIFICACIONES ---
+function mostrarNotificacion(mensaje, tipo = 'exito') {
+    const toast = document.getElementById('notificacion-toast');
+    const texto = document.getElementById('toast-text');
+    const icono = document.getElementById('toast-icon');
+    
+    if (toast && texto && icono) {
+        toast.className = 'toast mostrar' + (tipo === 'error' ? ' error' : '');
+        texto.textContent = mensaje;
+        icono.textContent = tipo === 'error' ? '!' : '✓';
+        setTimeout(() => {
+            toast.classList.remove('mostrar');
+        }, 6000);
+    } else {
+        alert(mensaje);
+    }
+}
+
+function cerrarToast() {
+    const toast = document.getElementById('notificacion-toast');
+    if (toast) toast.classList.remove('mostrar');
+}
+
+// --- RECUPERACIÓN DE CONTRASEÑA ---
+let emailRecuperacion = null;
+let pasoActual = 'email';
+
+function mostrarRecuperacion() {
+    const loginForm = document.getElementById('login-form');
+    const registroForm = document.getElementById('registro-form');
+    const recupForm = document.getElementById('recuperacion-form');
+    const pasoEmail = document.getElementById('paso-email-recup');
+    const pasoToken = document.getElementById('paso-token-recup');
+    const tabs = document.querySelector('.auth-container .tabs-login');
+    
+    if (loginForm) loginForm.style.display = 'none';
+    if (registroForm) registroForm.style.display = 'none';
+    if (recupForm) recupForm.style.display = 'block';
+    if (pasoEmail) pasoEmail.style.display = 'block';
+    if (pasoToken) pasoToken.style.display = 'none';
+    if (tabs) tabs.style.display = 'none';
+    
+    pasoActual = 'email';
+    emailRecuperacion = null;
+}
+
+function volverALogin() {
+    const loginForm = document.getElementById('login-form');
+    const registroForm = document.getElementById('registro-form');
+    const recupForm = document.getElementById('recuperacion-form');
+    const tabs = document.querySelector('.auth-container .tabs-login');
+    
+    if (recupForm) recupForm.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'block';
+    if (registroForm) registroForm.style.display = 'none';
+    if (tabs) tabs.style.display = 'flex';
+    
+    pasoActual = 'email';
+    emailRecuperacion = null;
+}
+
+async function enviarCodigoRecuperacion() {
+    console.log('>>> enviarCodigoRecuperacion llamado');
+    const email = document.getElementById('recup-email').value.trim();
+    console.log('>>> Email ingresado:', email);
+    
+    if (!email) {
+        mostrarNotificacion('Ingresa tu correo electronico', 'error');
+        return;
+    }
+
+    const btn = event.target;
+    const textoOriginal = btn.textContent;
+    btn.textContent = 'Enviando...';
+    btn.disabled = true;
+
+    try {
+        console.log('>>> Enviando fetch al servidor...');
+        const res = await fetch('http://localhost:3000/api/recuperar-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        console.log('>>> Respuesta status:', res.status);
+        const data = await res.json();
+        console.log('>>> Respuesta data:', data);
+        
+        if (res.ok && data.success) {
+            mostrarNotificacion('Codigo enviado a tu correo. Revisa tu bandeja de entrada (y spam).', 'exito');
+            emailRecuperacion = email;
+            pasoActual = 'token';
+            document.getElementById('paso-email-recup').style.display = 'none';
+            document.getElementById('paso-token-recup').style.display = 'block';
+        } else {
+            mostrarNotificacion(data.message || 'No se pudo enviar el codigo', 'error');
+        }
+    } catch (err) {
+        console.error('>>> Error:', err);
+        mostrarNotificacion('Error de conexion al servidor. Verifica que node server.js este corriendo.', 'error');
+    }
+
+    btn.textContent = textoOriginal;
+    btn.disabled = false;
+}
+
+async function restablecerConContrasena() {
+    console.log('>>> restablecerConContrasena llamado');
+    const token = document.getElementById('recup-token').value.trim();
+    const nuevaPassword = document.getElementById('recup-password').value;
+
+    if (!token) {
+        mostrarNotificacion('Ingresa el codigo que recibiste', 'error');
+        return;
+    }
+    if (!nuevaPassword) {
+        mostrarNotificacion('Ingresa la nueva contrasena', 'error');
+        return;
+    }
+    if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(nuevaPassword)) {
+        mostrarNotificacion('La contrasena debe contener NUMERO, MAYUSCULA y SIMBOLO', 'error');
+        return;
+    }
+
+    const btn = event.target;
+    const textoOriginal = btn.textContent;
+    btn.textContent = 'Procesando...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('http://localhost:3000/api/restablecer-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailRecuperacion, token, nuevaPassword })
+        });
+        const data = await res.json();
+        console.log('>>> Restablecer data:', data);
+        
+        if (res.ok && data.success) {
+            mostrarNotificacion('Contrasena actualizada correctamente. Inicia sesion.', 'exito');
+            volverALogin();
+            cambiarPestana('login');
+            if (emailRecuperacion) {
+                document.getElementById('email').value = emailRecuperacion;
+            }
+        } else {
+            mostrarNotificacion(data.message || 'Error al restablecer', 'error');
+        }
+    } catch (err) {
+        console.error('>>> Error:', err);
+        mostrarNotificacion('Error de conexion al servidor', 'error');
+    }
+
+    btn.textContent = textoOriginal;
+    btn.disabled = false;
+}
+
+function cerrarSesion() {
+    usuarioActual = null;
+    menuUsuario = [];
+    actualizarNavbar();
+    irAInicio();
+}
+
+// ============================================================
+// FUNCIONES INVENTARIO (CU23 - Compras, CU24 - Recetas)
+// ============================================================
+
+async function abrirModalCompra() {
+    document.getElementById('modal-compra').classList.remove('seccion-oculta');
+    await cargarInsumosCompra();
+}
+
+function cerrarModalCompra() {
+    document.getElementById('modal-compra').classList.add('seccion-oculta');
+}
+
+async function cargarInsumosCompra() {
+    const select = document.getElementById('compra-insumo-select');
+    try {
+        const res = await fetch(`${API_BASE}/api/inventario`);
+        const data = await res.json();
+        if (data.success) {
+            select.innerHTML = '<option value="">Seleccionar insumo...</option>';
+            data.insumos.forEach(i => {
+                select.innerHTML += `<option value="${i.id_producto}">${i.nombre} (Stock: ${i.cantidad})</option>`;
+            });
+        }
+    } catch (err) { console.error(err); }
+}
+
+function agregarItemCompra() {
+    const select = document.getElementById('compra-insumo-select');
+    const cantidad = document.getElementById('compra-cantidad').value;
+    if (!select.value || !cantidad) return;
+
+    const nombre = select.options[select.selectedIndex].text;
+    const lista = document.getElementById('compra-lista');
+    const div = document.createElement('div');
+    div.style = 'display:flex; gap:10px; align-items:center; padding:8px; border-bottom:1px solid #eee;';
+    div.innerHTML = `
+        <span style="flex:1;">${nombre}</span>
+        <span>Cant: ${cantidad}</span>
+        <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer;">✕</button>
+        <input type="hidden" value="${select.value},${cantidad}">
+    `;
+    lista.appendChild(div);
+    select.value = '';
+    document.getElementById('compra-cantidad').value = '';
+}
+
+async function guardarCompra() {
+    const lista = document.getElementById('compra-lista');
+    const items = [];
+    lista.querySelectorAll('input[type="hidden"]').forEach(h => {
+        const [id, cant] = h.value.split(',');
+        items.push({ id_producto: id, cantidad: parseInt(cant) });
+    });
+
+    if (items.length === 0) { alert('Agrega insumos'); return; }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/compras`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ insumos: items })
+        });
+        const data = await res.json();
+        if (data.success) {
+            mostrarNotificacion('Stock actualizado', 'exito');
+            cerrarModalCompra();
+        } else { alert(data.message); }
+    } catch (err) { alert('Error de conexion'); }
+}
+
+// --- CU24: Gestionar Recetas ---
+async function abrirModalReceta(idServicio, nombreServicio) {
+    document.getElementById('receta-id-servicio').value = idServicio;
+    document.getElementById('receta-nombre-servicio').textContent = nombreServicio || 'Nuevo Servicio';
+    document.getElementById('modal-receta').classList.remove('seccion-oculta');
+    await cargarInsumosReceta();
+    await cargarRecetaActual(idServicio);
+}
+
+function cerrarModalReceta() {
+    document.getElementById('modal-receta').classList.add('seccion-oculta');
+}
+
+async function cargarInsumosReceta() {
+    const select = document.getElementById('receta-insumo-select');
+    try {
+        const res = await fetch(`${API_BASE}/api/inventario`);
+        const data = await res.json();
+        if (data.success) {
+            select.innerHTML = '<option value="">Seleccionar insumo...</option>';
+            data.insumos.forEach(i => {
+                select.innerHTML += `<option value="${i.id_producto}">${i.nombre}</option>`;
+            });
+        }
+    } catch (err) { console.error(err); }
+}
+
+async function cargarRecetaActual(idServicio) {
+    const lista = document.getElementById('receta-lista');
+    lista.innerHTML = 'Cargando...';
+    try {
+        const res = await fetch(`${API_BASE}/api/recetas/${idServicio}`);
+        const data = await res.json();
+        if (data.success && data.receta.length > 0) {
+            lista.innerHTML = '';
+            data.receta.forEach(r => {
+                const div = document.createElement('div');
+                div.style = 'display:flex; gap:10px; align-items:center; padding:8px; border-bottom:1px solid #eee;';
+                div.innerHTML = `
+                    <span style="flex:1;">${r.nombre_insumo}</span>
+                    <span>Cant: ${r.cantidad}</span>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer;">✕</button>
+                    <input type="hidden" value="${r.id_producto},${r.cantidad}">
+                `;
+                lista.appendChild(div);
+            });
+        } else { lista.innerHTML = '<p style="color:#666; font-size:13px;">Sin receta configurada</p>'; }
+    } catch (err) { lista.innerHTML = 'Error'; }
+}
+
+function agregarItemReceta() {
+    const select = document.getElementById('receta-insumo-select');
+    const cantidad = document.getElementById('receta-cantidad').value;
+    if (!select.value || !cantidad) return;
+
+    const nombre = select.options[select.selectedIndex].text;
+    const lista = document.getElementById('receta-lista');
+    const div = document.createElement('div');
+    div.style = 'display:flex; gap:10px; align-items:center; padding:8px; border-bottom:1px solid #eee;';
+    div.innerHTML = `
+        <span style="flex:1;">${nombre}</span>
+        <span>Cant: ${cantidad}</span>
+        <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer;">✕</button>
+        <input type="hidden" value="${select.value},${cantidad}">
+    `;
+    lista.appendChild(div);
+    select.value = '';
+    document.getElementById('receta-cantidad').value = '';
+}
+
+async function guardarReceta() {
+    const idServicio = document.getElementById('receta-id-servicio').value;
+    const lista = document.getElementById('receta-lista');
+    const insumos = [];
+    lista.querySelectorAll('input[type="hidden"]').forEach(h => {
+        const [id, cant] = h.value.split(',');
+        insumos.push({ id_producto: id, cantidad: parseInt(cant) });
+    });
+
+    try {
+        const res = await fetch(`${API_BASE}/api/recetas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_servicio: idServicio, insumos })
+        });
+        const data = await res.json();
+        if (data.success) {
+            mostrarNotificacion('Receta guardada', 'exito');
+            cerrarModalReceta();
+        } else { alert(data.message); }
+    } catch (err) { alert('Error de conexion'); }
+}

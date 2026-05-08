@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Menu</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .menu-hamburguesa { cursor: pointer; display: inline-block; padding: 10px; background: #f0f0f0; }
+        .linea { display: block; width: 25px; height: 2px; background: #333; margin: 5px 0; }
+        .nav-menu-movil { display: none; background: white; border: 1px solid #ccc; padding: 20px; margin-top: 10px; }
+        .nav-menu-movil.active { display: block; }
+        .paquete { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .casos-uso { display: none; padding: 10px 20px; background: #f9f9f9; }
+        .casos-uso.mostrar { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Test Hamburger Menu</h1>
+    
+    <div class="menu-hamburguesa" onclick="toggleMenu()">
+        <span class="linea"></span>
+        <span class="linea"></span>
+        <span class="linea"></span>
+    </div>
+    
+    <div class="nav-menu-movil" id="menu">
+        <p>Cargando...</p>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.classList.toggle('active');
+            if (menu.classList.contains('active')) {
+                cargarPaquetes();
+            }
+        }
+
+        function cargarPaquetes() {
+            const menu = document.getElementById('menu');
+            menu.innerHTML = '<p>Cargando paquetes...</p>';
+            
+            fetch('http://localhost:3000/api/admin/paquetes-sistema')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Datos recibidos:', data);
+                    if (data.success && data.paquetes) {
+                        menu.innerHTML = '';
+                        data.paquetes.forEach(p => {
+                            const div = document.createElement('div');
+                            div.className = 'paquete';
+                            div.innerHTML = '<strong>' + p.nombre + '</strong>';
+                            div.onclick = () => toggleCasosUso(p.id_paquete_sist);
+                            
+                            const casosDiv = document.createElement('div');
+                            casosDiv.id = 'casos-' + p.id_paquete_sist;
+                            casosDiv.className = 'casos-uso';
+                            
+                            if (p.casos_uso && Array.isArray(p.casos_uso)) {
+                                p.casos_uso.forEach(cu => {
+                                    if (cu && cu.nombre) {
+                                        casosDiv.innerHTML += '<div>• ' + cu.nombre + '</div>';
+                                    }
+                                });
+                            }
+                            
+                            menu.appendChild(div);
+                            menu.appendChild(casosDiv);
+                        });
+                    } else {
+                        menu.innerHTML = '<p style="color:red;">No hay datos o error</p>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    menu.innerHTML = '<p style="color:red;">Error: ' + err.message + '</p>';
+                });
+        }
+
+        function toggleCasosUso(id) {
+            const div = document.getElementById('casos-' + id);
+            if (div) {
+                div.classList.toggle('mostrar');
+            }
+        }
+    </script>
+</body>
+</html>
