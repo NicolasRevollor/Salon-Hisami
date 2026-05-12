@@ -42,6 +42,53 @@ async function cargarClientesAdmin() {
     }
 }
 
+// Abre el modal de registro de nuevo cliente y limpia los campos
+function abrirModalNuevoCliente() {
+    document.getElementById('form-nuevo-cliente').reset();
+    document.getElementById('modal-nuevo-cliente').classList.remove('seccion-oculta');
+    document.getElementById('nuevo-cliente-ci').focus();
+}
+
+// Cierra el modal de nuevo cliente sin guardar
+function cerrarModalNuevoCliente() {
+    document.getElementById('modal-nuevo-cliente').classList.add('seccion-oculta');
+}
+
+// Envía el formulario de nuevo cliente al backend (POST /api/admin/clientes)
+async function manejarCrearCliente(e) {
+    e.preventDefault();
+    const ci         = document.getElementById('nuevo-cliente-ci').value.trim();
+    const nombre     = document.getElementById('nuevo-cliente-nombre').value.trim();
+    const telefono   = document.getElementById('nuevo-cliente-telefono').value.trim();
+    const email      = document.getElementById('nuevo-cliente-email').value.trim();
+    const contrasena = document.getElementById('nuevo-cliente-contrasena').value.trim();
+
+    if (!ci || !nombre || !email || !contrasena) {
+        mostrarToast('CI, nombre, correo y contraseña son obligatorios', 'error'); return;
+    }
+    if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(contrasena)) {
+        mostrarToast('La contraseña debe tener al menos 1 número, 1 mayúscula y 1 símbolo', 'error'); return;
+    }
+
+    try {
+        const res  = await fetch(API_BASE + '/api/admin/clientes', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ ci, nombre, telefono, email, contrasena })
+        });
+        const data = await res.json();
+        if (data.success) {
+            mostrarToast('Cliente registrado correctamente');
+            cerrarModalNuevoCliente();
+            cargarClientesAdmin();
+        } else {
+            mostrarToast(data.message || 'Error al registrar cliente', 'error');
+        }
+    } catch {
+        mostrarToast('Error de conexión', 'error');
+    }
+}
+
 // Abre el modal de edición pre-cargando todos los campos con los datos actuales del cliente
 function abrirModalEditarCliente(ci, nombre, telefono, email) {
     document.getElementById('editar-cliente-ci').value       = ci;

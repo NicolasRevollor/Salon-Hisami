@@ -24,6 +24,10 @@ async function cargarEspecialidadesAdmin() {
                 <td>${e.id_especialidad}</td>
                 <td>${e.nombre_especialidad}</td>
                 <td>
+                    <button class="btn-accion editar"
+                        onclick="abrirModalEditarEspecialidad(${e.id_especialidad}, '${e.nombre_especialidad.replace(/'/g,"\\'")}')">
+                        Editar
+                    </button>
                     <button class="btn-accion eliminar"
                         onclick="eliminarEspecialidadAdmin(${e.id_especialidad}, '${e.nombre_especialidad.replace(/'/g,"\\'")}')">
                         Eliminar
@@ -67,6 +71,45 @@ async function manejarGuardarEspecialidad(e) {
             cargarEspecialidadesAdmin(); // refrescar la tabla
         } else {
             mostrarToast(data.message || 'Error al crear', 'error');
+        }
+    } catch (err) {
+        mostrarToast('Error de conexión', 'error');
+    }
+}
+
+// Abre el modal de edición pre-cargando el id y nombre actuales
+function abrirModalEditarEspecialidad(id, nombre) {
+    document.getElementById('editar-especialidad-id').value     = id;
+    document.getElementById('editar-especialidad-nombre').value = nombre;
+    document.getElementById('modal-editar-especialidad').classList.remove('seccion-oculta');
+    document.getElementById('editar-especialidad-nombre').focus();
+}
+
+// Cierra el modal de edición sin guardar cambios
+function cerrarModalEditarEspecialidad() {
+    document.getElementById('modal-editar-especialidad').classList.add('seccion-oculta');
+}
+
+// Maneja el submit del formulario de edición: envía PUT con el nuevo nombre
+async function manejarEditarEspecialidad(e) {
+    e.preventDefault();
+    const id     = document.getElementById('editar-especialidad-id').value;
+    const nombre = document.getElementById('editar-especialidad-nombre').value.trim();
+    if (!nombre) { mostrarToast('El nombre no puede estar vacío', 'error'); return; }
+
+    try {
+        const res  = await fetch(API_BASE + '/api/admin/especialidades/' + id, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ nombre_especialidad: nombre })
+        });
+        const data = await res.json();
+        if (data.success) {
+            mostrarToast('Especialidad actualizada correctamente');
+            cerrarModalEditarEspecialidad();
+            cargarEspecialidadesAdmin();
+        } else {
+            mostrarToast(data.message || 'Error al actualizar', 'error');
         }
     } catch (err) {
         mostrarToast('Error de conexión', 'error');

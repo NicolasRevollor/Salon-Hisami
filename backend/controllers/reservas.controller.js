@@ -488,7 +488,14 @@ async function cancelarReserva(req, res) {
         const fechaLegible = `${parseInt(fd)} de ${meses[parseInt(fm) - 1]} de ${fy}`;
         const horaStr = (info.hora || '').substring(0, 5); // "14:30"
 
-        // Paso 2: borrar la reserva (la cascada en FK elimina detalle_reserva y pagos automáticamente)
+        // Paso 2: borrar la reserva.
+        // detalle_comision → comision no tiene ON DELETE CASCADE en la BD, así que hay
+        // que borrar detalle_comision primero; el resto (comision, detalle_reserva, pagos)
+        // se elimina automáticamente por las FKs con CASCADE.
+        await pool.query(`
+            DELETE FROM detalle_comision
+            WHERE id_comision IN (SELECT id_comision FROM comision WHERE id_cita = $1)
+        `, [id_cita]);
         await pool.query('DELETE FROM reservas WHERE id_cita = $1', [id_cita]);
 
         // Helper para construir el HTML del correo sin repetir código

@@ -43,11 +43,14 @@ body {
 .btn-profile:hover { background: var(--color-primario); color: white; }
 
 /* HAMBURGER MENU - SIEMPRE VISIBLE */
-.menu-hamburguesa { 
-    display: flex; flex-direction: column; gap: 5px; cursor: pointer; 
+.menu-hamburguesa {
+    display: flex; flex-direction: column; gap: 5px; cursor: pointer;
     margin-left: auto; padding: 0 15px;
 }
 .menu-hamburguesa .linea { width: 25px; height: 2px; background: var(--texto-oscuro); transition: 0.3s; }
+.menu-hamburguesa.active .linea:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.menu-hamburguesa.active .linea:nth-child(2) { opacity: 0; }
+.menu-hamburguesa.active .linea:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
 
 /* DESPLEGABLE MENU */
 .nav-menu-movil { 
@@ -194,6 +197,9 @@ body {
 .admin-table { width: 100%; border-collapse: collapse; text-align: left; }
 .admin-table th, .admin-table td { padding: 15px 20px; border-bottom: 1px solid #eaeaea; font-size: 14px; }
 .admin-table th { background-color: #f9f9f9; font-weight: 600; color: #444; }
+.admin-table tbody tr { cursor: pointer; }
+.admin-table tbody tr:hover { background-color: #f0f4f8; }
+.admin-table tbody tr.fila-seleccionada { background-color: #c8d8f0 !important; outline: 2px solid #5a8fd4; outline-offset: -2px; }
 .admin-table tr:hover { background-color: #fafafa; }
 .btn-table { padding: 6px 12px; background: #eee; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: 0.2s; }
 .btn-table:hover { background: var(--color-primario); color: white; }
@@ -221,8 +227,13 @@ body {
 .btn-volver-login:hover { color: #111; }
 
 /* --- TOAST NOTIFICATION --- */
-.toast {
+#toast-container {
     position: fixed; top: 90px; right: 20px; z-index: 3000;
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+    pointer-events: none;
+}
+.toast {
+    pointer-events: all;
     background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);
     padding: 16px 20px; display: flex; align-items: center; gap: 12px;
     min-width: 320px; max-width: 420px;
@@ -318,15 +329,6 @@ body {
    RESPONSIVE DESIGN
    ========================================================= */
 
-/* --- HAMBURGER MENU - SIEMPRE VISIBLE --- */
-.menu-hamburguesa { 
-    display: flex !important; flex-direction: column; gap: 5px; cursor: pointer; 
-    margin-left: auto; padding: 0 15px;
-}
-.menu-hamburguesa .linea { width: 25px; height: 2px; background: var(--texto-oscuro); transition: 0.3s; }
-.menu-hamburguesa.active .linea:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-.menu-hamburguesa.active .linea:nth-child(2) { opacity: 0; }
-.menu-hamburguesa.active .linea:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
 
 .nav-menu-movil { 
     display: none; 
@@ -376,6 +378,105 @@ body {
     .nav-container { width: 95%; }
     .form-box h2 { font-size: 22px; }
     .admin-table { display: block; overflow-x: auto; }
+}
+
+/* =========================================================
+   SECCIÓN PAQUETES PROMOCIONALES (landing)
+   ========================================================= */
+.paquetes-section {
+    padding: 80px 0;
+    background: linear-gradient(135deg, #fff9fb 0%, #fff3f8 100%);
+}
+
+.grid-paquetes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 30px;
+}
+
+.card-paquete {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 24px 22px;
+    box-shadow: 0 4px 20px rgba(180, 100, 130, 0.10);
+    border: 1px solid #fce4ec;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+.card-paquete:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(180, 100, 130, 0.18);
+}
+
+.paq-badge {
+    display: inline-block;
+    background: var(--primario);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    align-self: flex-start;
+}
+
+.paq-nombre {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--texto-oscuro);
+    margin: 4px 0 0;
+}
+
+.paq-descripcion {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.paq-vigencia {
+    font-size: 12px;
+    color: #999;
+    background: #f9f9f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    align-self: flex-start;
+}
+
+.paq-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    gap: 12px;
+}
+
+.paq-precio {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primario);
+}
+
+.btn-reservar-paq {
+    background: var(--primario);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    font-family: inherit;
+}
+.btn-reservar-paq:hover {
+    background: var(--secundario);
+    transform: scale(1.04);
 }
 
 /* =========================================================
@@ -523,8 +624,12 @@ body {
     .info-section { padding: 50px 20px; }
     .info-section h2 { font-size: 22px; }
 
-    /* ─── Catálogo de servicios ──────────────────────────── */
+    /* ─── Catálogo de servicios y paquetes ──────────────── */
     .grid-servicios { grid-template-columns: 1fr; gap: 14px; }
+    .grid-paquetes  { grid-template-columns: 1fr; gap: 14px; }
+    .paquetes-section { padding: 50px 20px; }
+    .paq-footer { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .btn-reservar-paq { width: 100%; text-align: center; }
     .card-footer { flex-direction: column; align-items: flex-start; gap: 12px; }
     .card-footer .btn-ver-servicios,
     .card-footer button { width: 100%; }
@@ -574,7 +679,8 @@ body {
     .section-header h2 { font-size: 22px; }
 
     /* Toast */
-    .toast { top: 70px; min-width: auto; max-width: calc(100% - 20px); right: 10px; left: 10px; }
+    #toast-container { top: 70px; right: 10px; left: 10px; align-items: stretch; }
+    .toast { min-width: auto; max-width: 100%; }
 
     /* reservas-header */
     .reservas-header h3 { font-size: 15px; }

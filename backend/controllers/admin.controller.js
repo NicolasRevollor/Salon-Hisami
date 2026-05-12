@@ -547,6 +547,29 @@ async function crearEspecialidad(req, res) {
     }
 }
 
+// PUT /api/admin/especialidades/:id — edita el nombre de una especialidad
+async function editarEspecialidad(req, res) {
+    const { nombre_especialidad } = req.body;
+    if (!nombre_especialidad?.trim()) {
+        return res.status(400).json({ success: false, message: 'El nombre es obligatorio.' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE especialidades SET nombre_especialidad = $1 WHERE id_especialidad = $2 RETURNING *',
+            [nombre_especialidad.trim(), req.params.id]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ success: false, message: 'Especialidad no encontrada.' });
+        }
+        res.json({ success: true, message: 'Especialidad actualizada.', especialidad: result.rows[0] });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(400).json({ success: false, message: 'Esa especialidad ya existe.' });
+        }
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
 // DELETE /api/admin/especialidades/:id — elimina una especialidad
 // La BD rechaza automáticamente si hay empleados con esa especialidad asignada (FK).
 async function eliminarEspecialidad(req, res) {
@@ -580,6 +603,45 @@ async function getClientes(req, res) {
         res.json({ success: true, clientes: result.rows });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+}
+
+// POST /api/admin/clientes — crea un nuevo cliente desde el panel admin
+async function crearCliente(req, res) {
+    const { ci, nombre, email, telefono, contrasena } = req.body;
+    if (!ci || !nombre || !email || !contrasena) {
+        return res.status(400).json({ success: false, message: 'CI, nombre, correo y contraseña son obligatorios.' });
+    }
+    const bcrypt = require('bcryptjs');
+    const { enviarCorreoCredenciales } = require('../config/mailer');
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const hash = await bcrypt.hash(contrasena, 10);
+        await client.query(
+            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, rol)
+             VALUES ($1, $2, $3, $4, $5, 'Cliente')`,
+            [ci, nombre.trim(), telefono || null, email.trim(), hash]
+        );
+        await client.query(`INSERT INTO clientes (ci_usuario) VALUES ($1)`, [ci]);
+        for (const id_cu of [1, 2, 3]) {
+            await client.query(
+                `INSERT INTO privilegios_usuario (ci_usuario, id_cu, habilitado)
+                 VALUES ($1, $2, true) ON CONFLICT (ci_usuario, id_cu) DO UPDATE SET habilitado = true`,
+                [ci, id_cu]
+            );
+        }
+        await client.query('COMMIT');
+        enviarCorreoCredenciales(email.trim(), nombre.trim(), contrasena);
+        res.json({ success: true, message: 'Cliente registrado correctamente.' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        if (err.code === '23505') {
+            return res.status(400).json({ success: false, message: 'El CI o correo ya están registrados.' });
+        }
+        res.status(500).json({ success: false, message: err.message });
+    } finally {
+        client.release();
     }
 }
 
@@ -620,6 +682,37 @@ async function eliminarCliente(req, res) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CU16 — COMISIONES (gestión de comisiones desde el panel admin)
+// ─────────────────────────────────────────────────────────────────────────────
+// CITAS — vista global para el administrador
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/admin/citas — lista todas las reservas del sistema con detalle completo
+async function getCitasAdmin(req, res) {
+    try {
+        const result = await pool.query(`
+            SELECT r.id_cita, r.fecha, r.hora, r.estado, r.reprogramaciones,
+                   uc.nombre  AS nombre_cliente,
+                   ue.nombre  AS nombre_esteticista,
+                   STRING_AGG(DISTINCT s.nombre_servicio, ', ') AS servicios,
+                   pg.metodo_pago, pg.monto
+            FROM reservas r
+            JOIN clientes cl  ON r.id_cliente      = cl.id_cliente
+            JOIN usuarios uc  ON cl.ci_usuario      = uc.ci
+            JOIN personal pe  ON r.id_esteticista   = pe.id_esteticista
+            JOIN usuarios ue  ON pe.ci_usuario       = ue.ci
+            LEFT JOIN detalle_reserva dr ON r.id_cita      = dr.id_cita
+            LEFT JOIN servicios s        ON dr.id_servicio  = s.id_servicio
+            LEFT JOIN pagos pg           ON r.id_cita       = pg.id_cita
+            GROUP BY r.id_cita, r.fecha, r.hora, r.estado, r.reprogramaciones,
+                     uc.nombre, ue.nombre, pg.metodo_pago, pg.monto
+            ORDER BY r.fecha DESC, r.hora DESC
+        `);
+        res.json({ success: true, citas: result.rows });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/admin/comisiones — lista todas las comisiones de todo el personal
@@ -664,7 +757,7 @@ async function getPaquetesSistema(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.*,
-                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre_cu)) AS casos_uso
+                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre)) AS casos_uso
             FROM paquetes_sistema ps
             LEFT JOIN casos_uso cu ON ps.id_paquete_sist = cu.id_paquete_sist
             GROUP BY ps.id_paquete_sist
@@ -681,7 +774,7 @@ async function getPaquetesSistema(req, res) {
 async function getPrivilegios(req, res) {
     try {
         const result = await pool.query(`
-            SELECT cu.id_cu, cu.nombre_cu, cu.id_paquete_sist,
+            SELECT cu.id_cu, cu.nombre, cu.id_paquete_sist,
                    EXISTS(
                      SELECT 1 FROM privilegios_usuario pu
                      WHERE pu.ci_usuario = $1 AND pu.id_cu = cu.id_cu AND pu.habilitado = true
@@ -721,9 +814,9 @@ module.exports = {
     // Especialidades de empleado
     getEspEmpleado, agregarEspEmpleado, eliminarEspEmpleado,
     // Especialidades catálogo global (CU12)
-    getEspecialidadesAdmin, crearEspecialidad, eliminarEspecialidad,
+    getEspecialidadesAdmin, crearEspecialidad, editarEspecialidad, eliminarEspecialidad,
     // Clientes (CU10)
-    getClientes, editarCliente, eliminarCliente,
+    getClientes, crearCliente, editarCliente, eliminarCliente,
     // Servicios (CU7)
     crearServicio, editarServicio, eliminarServicio,
     // Categorías (CU8)
@@ -732,6 +825,8 @@ module.exports = {
     getPaquetes, crearPaquete, editarPaquete, eliminarPaquete,
     // Privilegios (CU18)
     getPaquetesSistema, getPrivilegios, setPrivilegio,
+    // Citas (admin)
+    getCitasAdmin,
     // Comisiones (CU16)
     getComisionesAdmin, pagarComision
 };

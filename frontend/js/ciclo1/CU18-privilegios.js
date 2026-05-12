@@ -79,7 +79,7 @@ async function cargarPrivilegiosAdmin() {
                                ${p.tiene ? 'checked' : ''}>
                         <span class="tog-slider"></span>
                     </label>
-                    <span>${p.nombre_cu}</span>
+                    <span>${p.nombre}</span>
                     <span class="priv-saving" id="saving-${p.id_cu}">Guardando...</span>`;
 
                 // Registrar el evento change para auto-guardar cuando el toggle cambia

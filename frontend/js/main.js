@@ -53,6 +53,7 @@ function configurarFormularios() {
     document.getElementById('form-categoria').addEventListener('submit', manejarGuardarCategoria);
     document.getElementById('form-paquete').addEventListener('submit', manejarGuardarPaquete);
     document.getElementById('form-reserva').addEventListener('submit', manejarConfirmarReserva);
+    document.getElementById('form-nuevo-cliente').addEventListener('submit', manejarCrearCliente);
 }
 
 // =============================================================================
@@ -119,8 +120,10 @@ function formatearFechaCorta(fechaStr) {
 // Abre/cierra el menú hamburguesa y reconstruye su contenido al abrirse.
 function toggleMobileMenu() {
     const nav = document.getElementById('nav-menu-movil');
+    const btn = document.getElementById('hamburger');
     if (!nav) return;
     const abierto = nav.classList.toggle('active');
+    if (btn) btn.classList.toggle('active', abierto);
     if (abierto) renderizarMenuHamburguesa();
 }
 
@@ -192,10 +195,37 @@ async function renderizarMenuHamburguesa() {
             div.appendChild(sub);
             nav.appendChild(div);
         });
+    } else {
+        // Fallback: sin privilegios configurados → menú básico según rol
+        const links = [];
+        if (usuarioActual.rol === 'Administrador') {
+            links.push({ label: '⚙ Centro de Gestión', fn: () => mostrarCentroGestion('servicios') });
+        } else if (usuarioActual.rol === 'Personal') {
+            links.push({ label: '📅 Mi Agenda',  fn: () => { mostrarSeccion('panel-personal'); cambiarTabPersonal('agenda'); } });
+            links.push({ label: '💰 Comisiones', fn: () => { mostrarSeccion('panel-personal'); cambiarTabPersonal('comisiones'); } });
+        } else {
+            links.push({ label: '📋 Mis Citas',  fn: () => { mostrarSeccion('panel-cliente'); cambiarTabCliente('citas'); } });
+            links.push({ label: '🗓 Nueva Reserva', fn: () => { mostrarSeccion('panel-cliente'); abrirModalReserva(); } });
+            links.push({ label: '⭐ Favoritas',  fn: () => { mostrarSeccion('panel-cliente'); cambiarTabCliente('favoritos'); } });
+        }
+        links.push({ label: '🏠 Inicio',         fn: () => mostrarSeccion('landing') });
+        links.push({ label: '🔒 Cerrar Sesión',  fn: cerrarSesion });
+
+        links.forEach(({ label, fn }) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = 'display:block;width:calc(100% - 40px);margin:6px 20px;padding:11px 14px;' +
+                'background:transparent;border:1px solid #eee;border-radius:8px;cursor:pointer;' +
+                'font-size:14px;text-align:left;color:#444;font-family:inherit;';
+            btn.onmouseenter = () => btn.style.background = '#f9f3ec';
+            btn.onmouseleave = () => btn.style.background = 'transparent';
+            btn.onclick = () => { toggleMobileMenu(); fn(); };
+            nav.appendChild(btn);
+        });
     }
 
     // CU2 (Cerrar Sesión) ya aparece en el sub-menú del paquete "Gestión de Seguridad"
-    // No se duplica el botón aquí.
+    // No se duplica el botón aquí cuando menuUsuario tiene datos.
 }
 
 // Abre/cierra el submenú de un paquete. Cierra los demás para que solo uno esté abierto.
@@ -374,7 +404,7 @@ async function cargarMenuUsuario(ci) {
 // =============================================================================
 const TABS_ADMIN = [
     'servicios','empleados','clientes','categorias',
-    'paquetes','especialidades','bitacora','privilegios','comisiones'
+    'paquetes','especialidades','citas','bitacora','privilegios','comisiones'
 ];
 
 // Mapeo: palabra clave en el nombre del CU → id de la tab del Centro de Gestión.
@@ -424,7 +454,7 @@ async function mostrarCentroGestion(tabInicial) {
     TABS_ADMIN.forEach(t => {
         const btn = document.getElementById('tab-admin-' + t);
         if (!btn) return;
-        btn.style.display = (t !== 'privilegios' && tabsPermitidas.has(t)) ? '' : 'none';
+        btn.style.display = (t !== 'privilegios' && t !== 'citas' && tabsPermitidas.has(t)) ? '' : 'none';
     });
 
     // Navegar al tab solicitado si está permitido, o al primero disponible
@@ -438,9 +468,9 @@ async function mostrarCentroGestion(tabInicial) {
 
 // Cambia la pestaña activa del Centro de Gestión y carga sus datos automáticamente
 function cambiarTabAdmin(tab) {
-    // Capa de seguridad: privilegios es exclusivo para Administrador
-    if (tab === 'privilegios' && usuarioActual?.rol !== 'Administrador') {
-        mostrarToast('No tienes permiso para acceder a Privilegios', 'error'); return;
+    // Capa de seguridad: privilegios y citas son exclusivos para Administrador
+    if ((tab === 'privilegios' || tab === 'citas') && usuarioActual?.rol !== 'Administrador') {
+        mostrarToast('No tienes permiso para acceder a esta sección', 'error'); return;
     }
 
     TABS_ADMIN.forEach(t => {
@@ -456,6 +486,7 @@ function cambiarTabAdmin(tab) {
     if (tab === 'categorias')    cargarCategoriasAdmin();
     if (tab === 'paquetes')      cargarPaquetesAdmin();
     if (tab === 'especialidades') cargarEspecialidadesAdmin();
+    if (tab === 'citas')          cargarCitasAdmin();
     if (tab === 'bitacora')      cargarBitacoraAdmin();
     if (tab === 'comisiones')    cargarComisionesAdmin();
     // 'privilegios' no tiene carga automática — el admin busca por CI manualmente
@@ -505,20 +536,26 @@ function cambiarTabModal(tab) {
 // tipo = 'success' (verde, predeterminado) o 'error' (rojo)
 // =============================================================================
 function mostrarToast(mensaje, tipo = 'success') {
+    // Obtener o crear el contenedor único que apila los toasts verticalmente
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
     const toast = document.createElement('div');
-    // Clase CSS 'error' agrega el color rojo; sin ella es verde
     toast.className = 'toast' + (tipo === 'error' ? ' error' : '');
     toast.innerHTML = `
         <div class="toast-icon">${tipo === 'error' ? '✕' : '✓'}</div>
         <div class="toast-text">${mensaje}</div>
         <button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
-    document.body.appendChild(toast);
-    // Pequeño delay para que la animación CSS de entrada funcione
+    container.appendChild(toast);
+
     setTimeout(() => toast.classList.add('mostrar'), 10);
-    // Auto-eliminar después de 4 segundos
     setTimeout(() => {
         toast.classList.remove('mostrar');
-        setTimeout(() => toast.remove(), 400); // esperar fin de animación de salida
+        setTimeout(() => toast.remove(), 400);
     }, 4000);
 }
 

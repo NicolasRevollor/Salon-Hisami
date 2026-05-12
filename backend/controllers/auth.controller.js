@@ -30,6 +30,87 @@ const SALT_ROUNDS = 10; // factor de costo de bcrypt (más alto = más seguro pe
 
 // Estado en memoria (se pierde al reiniciar el servidor)
 const intentosLogin    = new Map(); // email → { intentos, bloqueadoHasta }
+
+// =============================================================================
+// MIGRACIÓN AUTOMÁTICA — restaura paquetes_sistema, casos_uso y privilegios
+// si están vacíos (ej: el usuario los borró accidentalmente por CASCADE).
+// Se llama al iniciar el servidor. Usa ON CONFLICT DO NOTHING para no duplicar.
+// =============================================================================
+async function initSistema() {
+    try {
+        // ── 1. paquetes_sistema ───────────────────────────────────────────────
+        await pool.query(`
+            INSERT INTO paquetes_sistema (id_paquete_sist, nombre, descripcion) VALUES
+              (1, 'Gestion de Seguridad',          'Control de acceso, login, roles y auditoria'),
+              (2, 'Gestion de Reservas y Clientes','Centraliza la agenda, clientes y comunicacion'),
+              (3, 'Gestion de Catalogo y Personal','Organiza la oferta comercial y el talento humano'),
+              (4, 'Gestion de Caja y Finanzas',    'Controla el flujo monetario, pagos y comisiones'),
+              (5, 'Gestion de Inventario',         'Supervisa insumos, consumos y stock')
+            ON CONFLICT (id_paquete_sist) DO NOTHING
+        `);
+
+        // ── 2. casos_uso ──────────────────────────────────────────────────────
+        await pool.query(`
+            INSERT INTO casos_uso (id_cu, id_paquete_sist, nombre, descripcion, ruta) VALUES
+              (1,  1, 'CU1 - Iniciar Sesion',              'Login y registro de acceso',                  '/login'),
+              (2,  1, 'CU2 - Cerrar Sesion',               'Salida del sistema',                          '/logout'),
+              (18, 1, 'CU18 - Gestionar Roles/Privilegios','Define niveles de autoridad',                 '/admin-privilegios'),
+              (19, 1, 'CU19 - Administrar Bitacora',       'Registro auditable de acciones',              '/bitacora'),
+              (3,  2, 'CU3 - Gestionar Cita/Reserva',      'Bloqueo de espacios en agenda',               '/hacer-reserva'),
+              (10, 2, 'CU10 - Gestionar Cliente',          'Datos de contacto de personas',               '/gestion-clientes'),
+              (6,  2, 'CU6 - Registro Preferencias',       'Historial clinico-estetico',                  '/preferencias'),
+              (20, 2, 'CU20 - Recordatorios Automaticos',  'Alertas a clientes antes de cita',            '/recordatorios'),
+              (21, 2, 'CU21 - Integrar WhatsApp',          'Comunicacion externa con clientes',           '/whatsapp'),
+              (8,  3, 'CU8 - Gestionar Categoria',         'Jerarquia del menu del salon',                '/gestion-categorias'),
+              (7,  3, 'CU7 - Gestionar Servicio',          'Administra servicios individuales',           '/gestion-servicios'),
+              (9,  3, 'CU9 - Gestionar Paquetes',          'Combina servicios en promociones',            '/gestion-paquetes'),
+              (11, 3, 'CU11 - Gestionar Personal',         'Perfiles de trabajadores activos',            '/gestion-personal'),
+              (12, 3, 'CU12 - Gestionar Especialidades',   'Puente entre personal y catalogo',            '/gestion-especialidades'),
+              (13, 4, 'CU13 - Gestionar Apertura/Cierre',  'Inicia y finaliza ciclo financiero',          '/caja'),
+              (4,  4, 'CU4 - Realizar Pago de Reserva',    'Procesa ingreso por servicio',                '/pagar'),
+              (5,  4, 'CU5 - Emitir Factura',              'Genera comprobante de pago',                  '/factura'),
+              (16, 4, 'CU16 - Gestionar Comisiones',       'Calcula remuneracion variable',               '/comisiones'),
+              (17, 4, 'CU17 - Generar Reporte Financiero', 'Vision gerencial de ganancias',               '/reportes'),
+              (23, 5, 'CU23 - Gestionar Compras/Pedidos',  'Registra entrada de mercaderia al local',     '/compras'),
+              (14, 5, 'CU14 - Gestionar Kit de Personal',  'Salida de insumos al carrito de trabajo',     '/kits'),
+              (24, 5, 'CU24 - Gestionar Consumo/Receta',   'Define formula estandar por servicio',        '/recetas'),
+              (15, 5, 'CU15 - Monitorear Alertas Stock',   'Vigilante de niveles criticos',               '/alertas-stock')
+            ON CONFLICT (id_cu) DO NOTHING
+        `);
+
+        // ── 3. Privilegios por defecto para usuarios que no tienen ninguno ────
+        // CUs básicos: 1 (login), 2 (logout), 3 (reservar), 16 (comisiones), 19 (bitacora)
+        const CUS_CLIENTE   = [1, 2, 3];
+        const CUS_PERSONAL  = [1, 2, 3, 16];
+        const CUS_ADMIN     = [1, 2, 3, 7, 8, 9, 10, 11, 12, 16, 18, 19];
+
+        const usuarios = await pool.query(
+            `SELECT ci, rol FROM usuarios u
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM privilegios_usuario pu WHERE pu.ci_usuario = u.ci
+             )`
+        );
+
+        for (const u of usuarios.rows) {
+            const cus = u.rol === 'Administrador' ? CUS_ADMIN
+                      : u.rol === 'Personal'      ? CUS_PERSONAL
+                      :                             CUS_CLIENTE;
+            for (const id_cu of cus) {
+                await pool.query(
+                    `INSERT INTO privilegios_usuario (ci_usuario, id_cu, habilitado)
+                     VALUES ($1, $2, true)
+                     ON CONFLICT (ci_usuario, id_cu) DO NOTHING`,
+                    [u.ci, id_cu]
+                );
+            }
+        }
+
+        console.log('✅ paquetes_Cargados');
+    } catch (err) {
+        console.error('❌ Error en initSistema:', err.message);
+    }
+}
+initSistema();
 const historialSesiones = [];       // últimos 50 logins exitosos
 
 // =============================================================================
@@ -301,7 +382,7 @@ async function menusUsuario(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.id_paquete_sist, ps.nombre AS paquete,
-                   cu.id_cu, cu.nombre_cu, cu.descripcion AS cu_desc, cu.ruta
+                   cu.id_cu, cu.nombre, cu.descripcion AS cu_desc, cu.ruta
             FROM privilegios_usuario pu
             JOIN casos_uso cu ON pu.id_cu = cu.id_cu
             JOIN paquetes_sistema ps ON cu.id_paquete_sist = ps.id_paquete_sist
@@ -316,7 +397,7 @@ async function menusUsuario(req, res) {
                 paqActual = { id: row.id_paquete_sist, nombre: row.paquete, cus: [] };
                 menu.push(paqActual);
             }
-            paqActual.cus.push({ id_cu: row.id_cu, nombre: row.nombre_cu, descripcion: row.cu_desc, ruta: row.ruta });
+            paqActual.cus.push({ id_cu: row.id_cu, nombre: row.nombre, descripcion: row.cu_desc, ruta: row.ruta });
         });
         res.json({ success: true, menu });
     } catch (err) {

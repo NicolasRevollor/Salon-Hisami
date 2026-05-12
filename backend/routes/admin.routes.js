@@ -71,10 +71,12 @@ router.delete('/api/admin/paquetes/:id', ctrl.eliminarPaquete);
 // ── Especialidades catálogo (CU12) ─────────────────────────────────────────
 router.get('/api/admin/especialidades',           ctrl.getEspecialidadesAdmin);
 router.post('/api/admin/especialidades',          ctrl.crearEspecialidad);
+router.put('/api/admin/especialidades/:id',       ctrl.editarEspecialidad);
 router.delete('/api/admin/especialidades/:id',    ctrl.eliminarEspecialidad);
 
 // ── Clientes (CU10) ────────────────────────────────────────────────────────
 router.get('/api/admin/clientes',          ctrl.getClientes);
+router.post('/api/admin/clientes',         ctrl.crearCliente);
 router.put('/api/admin/clientes/:ci',      ctrl.editarCliente);
 router.delete('/api/admin/clientes/:ci',   ctrl.eliminarCliente);
 
@@ -82,6 +84,9 @@ router.delete('/api/admin/clientes/:ci',   ctrl.eliminarCliente);
 router.get('/api/admin/paquetes-sistema',   ctrl.getPaquetesSistema);
 router.get('/api/admin/privilegios/:ci',    ctrl.getPrivilegios);
 router.post('/api/admin/privilegios',       ctrl.setPrivilegio);
+
+// ── Citas (admin) ──────────────────────────────────────────────────────────
+router.get('/api/admin/citas', ctrl.getCitasAdmin);
 
 // ── Comisiones (CU16) ──────────────────────────────────────────────────────
 router.get('/api/admin/comisiones',             ctrl.getComisionesAdmin);

@@ -1,12 +1,13 @@
 // =============================================================================
 // CU2-catalogo.js — CATÁLOGO PÚBLICO DE SERVICIOS (página principal / landing)
-// Muestra las tarjetas de servicios con filtros por categoría.
+// Muestra las tarjetas de servicios con filtros por categoría,
+// y la sección de paquetes promocionales.
 // Esta sección es visible para TODOS (logueados o no).
 // Depende de: main.js (API_BASE, catalogoCompleto)
 // =============================================================================
 
 // =============================================================================
-// Carga los servicios y las categorías desde la BD al mismo tiempo (en paralelo).
+// Carga los servicios, categorías y paquetes desde la BD al mismo tiempo.
 // Promise.all() espera que AMBAS peticiones terminen antes de procesar los datos.
 // =============================================================================
 async function cargarServiciosDeBD() {
@@ -21,6 +22,7 @@ async function cargarServiciosDeBD() {
         if (dataServ.success) {
             catalogoCompleto = dataServ.servicios; // guardar en variable global para filtrar sin pedir de nuevo
             mostrarServicios(dataServ.servicios);
+            mostrarPaquetes(dataServ.paquetes || []); // también mostrar los paquetes promocionales
         }
         if (dataCat.success) {
             generarBotonesFiltro(dataCat.categorias); // crear los botones "Todos | Manicura | Pedicura..."
@@ -93,4 +95,58 @@ function filtrarServicios(categoria, btn) {
             s.nombre_categoria.toLowerCase() === categoria.toLowerCase()
           );
     mostrarServicios(filtrados);
+}
+
+// Renderiza las tarjetas de paquetes promocionales en #contenedor-paquetes.
+// Muestra nombre, descripción, precio, servicios incluidos y fechas de vigencia.
+function mostrarPaquetes(paquetes) {
+    const cont = document.getElementById('contenedor-paquetes');
+    const seccion = document.getElementById('paquetes');
+    if (!cont) return;
+
+    // Ocultar la sección si no hay paquetes en la BD
+    if (!paquetes || paquetes.length === 0) {
+        if (seccion) seccion.style.display = 'none';
+        return;
+    }
+    if (seccion) seccion.style.display = '';
+
+    cont.innerHTML = '';
+    paquetes.forEach(p => {
+        // Formatear fechas de vigencia si existen
+        let vigencia = '';
+        if (p.fecha_inicio || p.fecha_final) {
+            const ini = p.fecha_inicio ? formatearFechaCorta(p.fecha_inicio) : '?';
+            const fin = p.fecha_final  ? formatearFechaCorta(p.fecha_final)  : '?';
+            vigencia = `<span class="paq-vigencia">Válido: ${ini} → ${fin}</span>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'card-paquete';
+        card.innerHTML = `
+            <div class="paq-badge">PROMOCIÓN</div>
+            <h3 class="paq-nombre">${p.nombre}</h3>
+            ${p.descripcion ? `<p class="paq-descripcion">${p.descripcion}</p>` : ''}
+            ${vigencia}
+            <div class="paq-footer">
+                <span class="paq-precio">Bs ${parseFloat(p.precio_promocional || 0).toFixed(2)}</span>
+                <button class="btn-reservar-paq" onclick="abrirModalReservaPaquete(${p.id_paquete})">
+                    Reservar
+                </button>
+            </div>`;
+        cont.appendChild(card);
+    });
+}
+
+// Abre el modal de reserva con el paquete pre-seleccionado.
+function abrirModalReservaPaquete(idPaquete) {
+    // Seleccionar el radio de paquete
+    const radioPaquete = document.getElementById('tipo-paquete');
+    if (radioPaquete) {
+        radioPaquete.checked = true;
+        cambiarTipoReserva(); // recargar el select con paquetes
+    }
+    // Guardar el id del paquete para pre-seleccionarlo una vez que cargue el select
+    window._preselPaqueteId = idPaquete;
+    abrirModalReserva();
 }

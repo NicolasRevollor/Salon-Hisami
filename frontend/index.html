@@ -61,6 +61,18 @@
             </div>
         </section>
 
+        <section id="paquetes" class="paquetes-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Paquetes Promocionales</h2>
+                    <p>Combina varios servicios con precios especiales por tiempo limitado</p>
+                </div>
+                <div class="grid-paquetes" id="contenedor-paquetes">
+                    <!-- Tarjetas generadas dinámicamente por mostrarPaquetes() en catalogo.js -->
+                </div>
+            </div>
+        </section>
+
         <section id="nosotros" class="info-section bg-claro">
             <div class="container text-center">
                 <h2>Sobre HISAMI</h2>
@@ -80,6 +92,7 @@
                     <h4>Enlaces Rápidos</h4>
                     <ul>
                         <li><a href="#servicios">Servicios</a></li>
+                        <li><a href="#paquetes">Paquetes</a></li>
                         <li><a href="#nosotros">Sobre Nosotros</a></li>
                         <li><a href="#contacto">Contacto</a></li>
                         <li><a href="#" onclick="mostrarSeccion('login')">Mi Cuenta</a></li>
@@ -300,6 +313,7 @@
                 <button class="tab-cli" id="tab-admin-categorias"            onclick="cambiarTabAdmin('categorias')">Categorías</button>
                 <button class="tab-cli" id="tab-admin-paquetes"              onclick="cambiarTabAdmin('paquetes')">Paquetes</button>
                 <button class="tab-cli" id="tab-admin-especialidades"        onclick="cambiarTabAdmin('especialidades')">Especialidades</button>
+                <button class="tab-cli" id="tab-admin-citas"                 onclick="cambiarTabAdmin('citas')">Reservas</button>
                 <button class="tab-cli" id="tab-admin-bitacora"              onclick="cambiarTabAdmin('bitacora')">Bitácora</button>
                 <button class="tab-cli" id="tab-admin-privilegios"           onclick="cambiarTabAdmin('privilegios')">Privilegios</button>
                 <button class="tab-cli" id="tab-admin-comisiones"            onclick="cambiarTabAdmin('comisiones')">Comisiones</button>
@@ -419,6 +433,40 @@
                 </div>
             </div>
 
+            <!-- VISTA RESERVAS (admin) -->
+            <div id="vista-admin-citas" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Gestión de Reservas</h3>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <button id="btn-cancelar-reserva-admin" class="btn-accion eliminar"
+                            style="display:none;padding:8px 18px;font-size:14px;"
+                            onclick="cancelarReservaAdmin()">Cancelar Reserva</button>
+                        <button id="btn-limpiar-filtro-reservas" class="btn-outline-dark"
+                            style="display:none;"
+                            onclick="limpiarFiltroReservas()">Limpiar filtro</button>
+                        <button class="btn-nueva-reserva" onclick="abrirFiltroReservas()">Filtrar</button>
+                        <button class="btn-outline-dark"  onclick="cargarCitasAdmin()">Refrescar</button>
+                    </div>
+                </div>
+                <div class="admin-table-container dash-card">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Cliente</th>
+                                <th>Esteticista</th>
+                                <th>Servicios</th>
+                                <th>Estado</th>
+                                <th>Pago</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-admin-citas-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- VISTA BITÁCORA (CU19) -->
             <div id="vista-admin-bitacora" class="seccion-oculta">
                 <div class="reservas-header">
@@ -458,7 +506,10 @@
             <div id="vista-admin-clientes" class="seccion-oculta">
                 <div class="reservas-header">
                     <h3>Gestión de Clientes</h3>
-                    <button class="btn-outline-dark" onclick="cargarClientesAdmin()">Refrescar</button>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn-nueva-reserva" onclick="abrirModalNuevoCliente()">+ Nuevo Cliente</button>
+                        <button class="btn-outline-dark" onclick="cargarClientesAdmin()">Refrescar</button>
+                    </div>
                 </div>
                 <div class="admin-table-container dash-card">
                     <table class="admin-table">
@@ -525,6 +576,76 @@
         </div>
     </div>
 
+    <!-- Modal filtro de reservas (admin) -->
+    <div id="modal-filtro-reservas" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:520px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="font-size:20px;">Filtrar Reservas</h3>
+                <button onclick="cerrarFiltroReservas()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="input-group">
+                    <label>Fecha desde</label>
+                    <input type="date" id="filtro-fecha-desde">
+                </div>
+                <div class="input-group">
+                    <label>Fecha hasta</label>
+                    <input type="date" id="filtro-fecha-hasta">
+                </div>
+                <div class="input-group">
+                    <label>Hora</label>
+                    <input type="time" id="filtro-hora">
+                </div>
+                <div class="input-group">
+                    <label>Estado</label>
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option>Pendiente</option>
+                        <option>Confirmada</option>
+                        <option>Completada</option>
+                        <option>Cancelada</option>
+                    </select>
+                </div>
+                <div class="input-group" style="grid-column:span 2;">
+                    <label>Servicio</label>
+                    <input type="text" id="filtro-servicio" placeholder="Buscar por nombre de servicio...">
+                </div>
+                <div class="input-group">
+                    <label>Esteticista</label>
+                    <input type="text" id="filtro-esteticista" placeholder="Nombre...">
+                </div>
+                <div class="input-group">
+                    <label>Cliente</label>
+                    <input type="text" id="filtro-cliente" placeholder="Nombre...">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button onclick="aplicarFiltroReservas()" class="btn-registrarse" style="flex:1;">Aplicar filtro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal editar especialidad (CU12) -->
+    <div id="modal-editar-especialidad" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:400px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="font-size:20px;">Editar Especialidad</h3>
+                <button onclick="cerrarModalEditarEspecialidad()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+            <form id="form-editar-especialidad" onsubmit="manejarEditarEspecialidad(event)">
+                <input type="hidden" id="editar-especialidad-id">
+                <div class="input-group">
+                    <label>Nombre de la especialidad</label>
+                    <input type="text" id="editar-especialidad-nombre" placeholder="Ej: Masajes, Uñas gel..." required>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:15px;">
+                    <button type="submit" class="btn-registrarse" style="flex:1;">Guardar</button>
+                    <button type="button" class="btn-outline-dark" onclick="cerrarModalEditarEspecialidad()" style="flex:1;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal nueva especialidad (CU12) -->
     <div id="modal-especialidad" class="modal-overlay seccion-oculta">
         <div class="caja-translucida modal-content" style="max-width:400px;">
@@ -546,6 +667,43 @@
     </div>
 
     <!-- Modal editar cliente (CU10) -->
+    <!-- MODAL: NUEVO CLIENTE (admin) -->
+    <div id="modal-nuevo-cliente" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:460px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="font-size:20px;color:var(--texto-oscuro);">Nuevo Cliente</h3>
+                <button onclick="cerrarModalNuevoCliente()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+            <form id="form-nuevo-cliente" onsubmit="manejarCrearCliente(event)" novalidate>
+                <div class="input-group">
+                    <label>CI (cédula de identidad)</label>
+                    <input type="text" id="nuevo-cliente-ci" placeholder="Ej: 12345678" required>
+                </div>
+                <div class="input-group">
+                    <label>Nombre completo</label>
+                    <input type="text" id="nuevo-cliente-nombre" placeholder="Ej: María López" required>
+                </div>
+                <div class="input-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="nuevo-cliente-telefono" placeholder="Ej: 70000000">
+                </div>
+                <div class="input-group">
+                    <label>Correo electrónico</label>
+                    <input type="email" id="nuevo-cliente-email" placeholder="Ej: cliente@correo.com" required>
+                </div>
+                <div class="input-group">
+                    <label>Contraseña inicial</label>
+                    <input type="text" id="nuevo-cliente-contrasena" placeholder="Mínimo: 1 número, 1 mayúscula, 1 símbolo" required>
+                </div>
+                <p style="font-size:12px;color:#888;margin:-6px 0 12px;">Se enviará un correo al cliente con sus credenciales de acceso.</p>
+                <div style="display:flex;gap:10px;margin-top:10px;">
+                    <button type="submit" class="btn-registrarse" style="flex:1;">Registrar Cliente</button>
+                    <button type="button" class="btn-outline-dark" onclick="cerrarModalNuevoCliente()" style="flex:1;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modal-editar-cliente" class="modal-overlay seccion-oculta">
         <div class="caja-translucida modal-content" style="max-width: 460px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -957,12 +1115,6 @@
         </div>
     </div>
 
-    <div id="notificacion-toast" class="toast">
-        <div class="toast-icon" id="toast-icon">✓</div>
-        <div class="toast-text" id="toast-text"></div>
-        <button class="toast-close" onclick="cerrarToast()">✕</button>
-    </div>
-
     <!-- ══════════════════════════════════════════════════════════════════════
          ORDEN DE CARGA DE SCRIPTS — IMPORTANTE: no cambiar el orden
          1.  main.js                     → variables globales, utilidades, navegación
@@ -996,6 +1148,7 @@
     <script src="js/ciclo2/CU8-categorias.js"></script>
     <script src="js/ciclo2/CU9-paquetes.js"></script>
     <script src="js/ciclo2/CU12-especialidades.js"></script>
+    <script src="js/ciclo2/CU-citas-admin.js"></script>
     <script src="js/ciclo2/CU19-bitacora.js"></script>
     <script src="js/ciclo2/CU3-reservar.js"></script>
     <!-- Paneles y catálogo -->

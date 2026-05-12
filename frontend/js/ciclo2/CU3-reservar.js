@@ -5,7 +5,7 @@
 //        → hora → método de pago → revisar disponibilidad → confirmar
 // BD: reservas(id_cita, ci_cliente, ci_esteticista, fecha, hora_inicio,
 //              metodo_pago, estado, id_servicio, id_paquete, reprogramaciones)
-// Depende de: main.js (API_BASE, usuarioActual, mostrarToast, mostrarSeccion,
+// Depende de: main.js (API_BASE, usuarioActual, mostrarToast, mostrarSeccion,git status
 //             getEsteticistasSeleccionadas, formatearFecha, formatearFechaCorta)
 //             panel-cliente.js (cargarReservasCliente — refresca "Mis Citas")
 // =============================================================================
@@ -89,6 +89,13 @@ async function cargarItemsReserva() {
                     opt.dataset.tipo = 'paquete';
                     sel.appendChild(opt);
                 });
+
+                // Pre-seleccionar el paquete si se abrió desde "Reservar" en el catálogo
+                if (window._preselPaqueteId) {
+                    sel.value = String(window._preselPaqueteId);
+                    if (sel.value) cargarEsteticistasParaItem();
+                    window._preselPaqueteId = null;
+                }
             }
         } catch { mostrarToast('Error cargando paquetes', 'error'); }
     }
@@ -213,11 +220,19 @@ async function revisarReserva() {
     if (!hora)        { mostrarToast('Selecciona la hora', 'error'); return; }
     if (!pago)        { mostrarToast('Selecciona el método de pago', 'error'); return; }
 
-    // Rechazar fechas pasadas (comparación sin zona horaria para evitar offset)
+    // Rechazar fecha o fecha+hora en el pasado
     const [y, m, d] = fecha.split('-').map(Number);
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    if (new Date(y, m - 1, d) < hoy) {
-        mostrarToast('La fecha no puede ser en el pasado', 'error'); return;
+    const ahora   = new Date();
+    const hoy     = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const fechaSel = new Date(y, m - 1, d);
+    if (fechaSel < hoy) {
+        mostrarToast('No se puede registrar una cita en el pasado', 'error'); return;
+    }
+    if (fechaSel.getTime() === hoy.getTime() && hora) {
+        const [hh, mm] = hora.split(':').map(Number);
+        if (hh * 60 + mm <= ahora.getHours() * 60 + ahora.getMinutes()) {
+            mostrarToast('No se puede registrar una cita en el pasado', 'error'); return;
+        }
     }
 
     const divResumen  = document.getElementById('resumen-reserva');
@@ -290,11 +305,13 @@ async function manejarConfirmarReserva(e) {
         });
         const data = await res.json();
         if (data.success) {
-            mostrarToast(data.message || '¡Reserva confirmada!');
+            mostrarToast('¡Reserva confirmada con éxito!');
             cerrarModalReserva();
             cargarReservasCliente(); // refrescar "Mis Citas" en el panel del cliente
+        } else if (res.status === 409) {
+            mostrarToast('El horario seleccionado ya no está disponible. Por favor elige otra hora.', 'error');
         } else {
-            mostrarToast(data.message || 'Error al confirmar la reserva', 'error');
+            mostrarToast('No se pudo confirmar la reserva. Inténtalo de nuevo.', 'error');
         }
-    } catch { mostrarToast('Error de conexión al confirmar', 'error'); }
+    } catch { mostrarToast('Error de conexión. Inténtalo de nuevo.', 'error'); }
 }
