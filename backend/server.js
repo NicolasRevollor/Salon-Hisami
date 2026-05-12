@@ -12,13 +12,13 @@
 // ¿Por qué tan corto?
 //   Antes todo el código estaba aquí. Ahora cada responsabilidad está
 //   en su propio archivo, así es mucho más fácil encontrar y modificar algo.
-//
+// 
 // Estructura del backend:
 //   config/
-//     db.js          → conexión a PostgreSQL
+//     db.js          → conexión a PostgreSQL  
 //     mailer.js      → configuración de correos (nodemailer)
 //   controllers/
-//     auth.controller.js       → login, registro, contraseñas, menús
+//     auth.controller.js       → login, registro, contraseñas, menús 
 //     catalogo.controller.js   → servicios, categorías, comisiones
 //     reservas.controller.js   → esteticistas, disponibilidad, reservas
 //     admin.controller.js      → CRUD de empleados, servicios, paquetes, privilegios

@@ -348,7 +348,7 @@ body {
 }
 
 /* =========================================================
-   MOBILE (max-width: 768px)
+   MOBILE BASE (max-width: 768px)
    ========================================================= */
 @media (max-width: 768px) {
     .menu-hamburguesa { display: flex; }
@@ -357,75 +357,228 @@ body {
         position: absolute; top: 75px; left: 0; right: 0;
         background: var(--bg-blanco); max-height: 70vh; overflow-y: auto;
         box-shadow: 0 10px 20px rgba(0,0,0,0.1); z-index: 1001;
-        padding: 20px;
+        padding: 0;
     }
-
-    .nav-links {
-        flex-direction: column; align-items: center; gap: 0; padding: 0; box-shadow: none;
-    }
-    .nav-links li { width: 100%; text-align: center; }
-    .nav-links a { display: block; padding: 15px 20px; border-bottom: 1px solid #f0f0f0; }
-
-    .nav-actions {
-        display: flex !important; flex-direction: column; padding: 10px 20px; gap: 10px; width: 100%;
-        border-top: 1px solid #e0e0e0; margin-top: 5px;
-    }
-    .nav-actions button { width: 100%; text-align: center; padding: 12px; }
-
-    #nav-actions-logged {
-        flex-direction: row !important; justify-content: center; align-items: center; gap: 15px;
-    }
-    #nav-actions-logged button { width: auto; }
-
-    .hero-section { height: 60vh; padding-left: 5%; padding-right: 5%; }
-    .hero-title { font-size: 42px; }
-    .hero-subtitle { font-size: 16px; margin-bottom: 25px; }
-    .hero-buttons { flex-direction: column; gap: 10px; }
-    .hero-buttons button { width: 100%; padding: 12px; }
 
     .section-header h2 { font-size: 28px; }
-    .grid-servicios { grid-template-columns: 1fr; }
     .filtros-categoria { gap: 8px; }
     .btn-filtro { padding: 8px 16px; font-size: 12px; }
-
     .footer-grid { grid-template-columns: 1fr; gap: 30px; }
-
-    .auth-container { max-width: 95%; }
-    .form-box { padding: 30px 20px; }
-
-    .dashboard-container { max-width: 95%; padding: 20px; }
-    .header-cliente { flex-direction: column; gap: 10px; align-items: flex-start; }
-    .tabs-cliente { flex-direction: column; border-radius: 12px; }
+    .form-box { padding: 28px 18px; }
     .tab-cli { border-radius: 8px; }
-
-    .reservas-header { flex-direction: column; gap: 10px; align-items: flex-start; }
     .reserva-card { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
-
-    .admin-table { font-size: 12px; }
-    .admin-table th, .admin-table td { padding: 10px 8px; }
-
-    .modal-content { max-width: 95%; padding: 25px 15px; margin: 10px; }
 }
 
 /* =========================================================
-   SMALL MOBILE (max-width: 480px)
+   SMALL MOBILE BASE (max-width: 480px)
    ========================================================= */
 @media (max-width: 480px) {
-    .navbar { height: 60px; }
     .nav-container { width: 95%; }
-    .logo-nav { font-size: 20px; }
-    .nav-menu-movil { top: 60px; }
+    .form-box h2 { font-size: 22px; }
+    .admin-table { display: block; overflow-x: auto; }
+}
 
-    .hero-section { height: 50vh; }
-    .hero-title { font-size: 32px; }
+/* =========================================================
+   ESTILOS FALTANTES — usados por JS en contenido dinámico
+   ========================================================= */
+
+/* Botones de acción en tablas (usados en CU10, CU12, CU16) */
+.btn-accion {
+    padding: 6px 12px; border: none; border-radius: 4px;
+    cursor: pointer; font-size: 12px; font-weight: 600;
+    transition: 0.2s; margin-right: 4px; display: inline-block;
+}
+.btn-accion.editar  { background: #e0f2fe; color: #0369a1; }
+.btn-accion.editar:hover  { background: #0369a1; color: white; }
+.btn-accion.eliminar { background: #fee2e2; color: #991b1b; }
+.btn-accion.eliminar:hover { background: #dc3545; color: white; }
+
+/* Badges de estado (usados en CU16 y panel-personal) */
+.estado-badge {
+    display: inline-block; padding: 4px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.badge-completada { background: #d1fae5; color: #065f46; }
+.badge-pendiente  { background: #fef08a; color: #854d0e; }
+.badge-cancelada  { background: #fee2e2; color: #991b1b; }
+.badge-confirmada { background: #dbeafe; color: #1e40af; }
+.badge-finalizada { background: #e9d5ff; color: #6b21a8; }
+
+/* Sección "Sobre Nosotros" del landing */
+.info-section { padding: 80px 0; }
+.info-section h2 { font-size: 30px; font-weight: 600; margin-bottom: 15px; color: var(--texto-oscuro); }
+
+/* Modales: scroll cuando el formulario es largo */
+.modal-content { max-height: 90vh; overflow-y: auto; }
+
+/* Tablas admin: siempre con scroll horizontal disponible */
+.admin-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* =========================================================
+   RESPONSIVE — TABLET (max-width: 1024px)
+   ========================================================= */
+@media (max-width: 1024px) {
+    .dashboard-container { padding: 30px; }
+    .tabs-cliente { gap: 4px; }
+    .tab-cli { font-size: 13px; padding: 10px 14px; }
+    .modal-content { max-width: 90%; }
+}
+
+/* =========================================================
+   RESPONSIVE — MOBILE (max-width: 768px)
+   ========================================================= */
+@media (max-width: 768px) {
+
+    /* ─── Navbar ─────────────────────────────────────────────
+       Ocultar los botones del navbar: el menú hamburguesa
+       ya incluye "Iniciar Sesión" y "Registrarse" para
+       usuarios sin sesión, y todos los CUs para los logueados.     ────────────────────────────────────────────────────── */
+    #nav-actions-public,
+    #nav-actions-logged { display: none !important; }
+
+    /* ─── Paneles internos ───────────────────────────────────
+       Los paneles tienen padding-top:120px inline; lo
+       reducimos a 90px para que no haya tanto espacio vacío
+       bajo la navbar de 75px.
+       ────────────────────────────────────────────────────── */
+    .sistema-section { padding-top: 90px !important; padding-bottom: 40px; }
+
+    /* ─── Dashboard container ─────────────────────────────── */
+    .dashboard-container {
+        padding: 16px 12px;
+        max-width: 100% !important;
+        border-radius: 12px;
+    }
+    .header-cliente { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .header-cliente h2 { font-size: 21px; }
+    .btn-configuracion { width: 100%; text-align: center; }
+
+    /* ─── Tabs ────────────────────────────────────────────────
+       Tabs de cliente/personal: se envuelven normalmente.
+       Tabs del admin (9 botones): scroll horizontal para que
+       quepan sin encoger el texto.
+       ────────────────────────────────────────────────────── */
+    .tabs-cliente {
+        flex-wrap: wrap !important;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 10px;
+    }
+    #centro-gestion .tabs-cliente {
+        overflow-x: auto;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 6px;
+        border-radius: 10px;
+    }
+    #centro-gestion .tabs-cliente::-webkit-scrollbar { display: none; }
+    .tab-cli { white-space: nowrap; flex-shrink: 0; font-size: 13px; padding: 10px 13px; }
+
+    /* ─── Cabecera de vistas (título + botón de acción) ──── */
+    .reservas-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .reservas-header h3 { font-size: 17px; }
+    .reservas-header .btn-nueva-reserva,
+    .reservas-header .btn-outline-dark { width: 100%; text-align: center; }
+
+    /* El div con input+button (búsqueda de privilegios): apilarlo verticalmente */
+    .reservas-header > div {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+    #admin-buscar-ci { width: 100% !important; }
+
+    /* ─── Tablas ──────────────────────────────────────────── */
+    .admin-table th, .admin-table td { padding: 10px 12px; font-size: 13px; }
+
+    /* ─── Modales ────────────────────────────────────────────
+       Se muestran centrados verticalmente desde arriba del
+       contenido (debajo del navbar) y son scrollables.
+       ────────────────────────────────────────────────────── */
+    .modal-overlay { padding: 80px 10px 20px; align-items: flex-start; }
+    .modal-content {
+        width: 100%; max-width: 100%;
+        max-height: calc(100vh - 100px);
+        padding: 22px 18px;
+        margin: 0 auto;
+        border-radius: 14px;
+    }
+
+    /* ─── Hero ───────────────────────────────────────────── */
+    .hero-section { height: auto; min-height: 55vh; padding: 80px 5% 40px; }
+    .hero-content { max-width: 100%; }
+    .hero-title { font-size: 44px; }
+    .hero-subtitle { font-size: 16px; margin-bottom: 25px; }
+    .hero-buttons { flex-direction: column; gap: 10px; }
+    .hero-buttons button { width: 100%; padding: 13px; }
+
+    /* ─── Sección info ───────────────────────────────────── */
+    .info-section { padding: 50px 20px; }
+    .info-section h2 { font-size: 22px; }
+
+    /* ─── Catálogo de servicios ──────────────────────────── */
+    .grid-servicios { grid-template-columns: 1fr; gap: 14px; }
+    .card-footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .card-footer .btn-ver-servicios,
+    .card-footer button { width: 100%; }
+
+    /* ─── Formulario auth ────────────────────────────────── */
+    .auth-container { max-width: 100%; padding: 0; }
+    .form-box { padding: 28px 18px; }
+}
+
+/* =========================================================
+   RESPONSIVE — SMALL MOBILE (max-width: 480px)
+   ========================================================= */
+@media (max-width: 480px) {
+    /* Navbar más compacta */
+    .navbar { height: 60px; }
+    .logo-nav { font-size: 20px; }
+    .nav-menu-movil { top: 60px; max-height: 80vh; }
+
+    /* Paneles: reducir aún más el padding-top */
+    .sistema-section { padding-top: 76px !important; }
+
+    /* Dashboard */
+    .dashboard-container { padding: 10px; border-radius: 8px; }
+    .header-cliente h2 { font-size: 18px; }
+    .tab-cli { font-size: 12px; padding: 9px 11px; }
+
+    /* Admin tabs */
+    #centro-gestion .tabs-cliente { padding-bottom: 4px; }
+
+    /* Tablas */
+    .admin-table th, .admin-table td { padding: 8px 9px; font-size: 12px; }
+    .btn-table, .btn-table-danger, .btn-accion {
+        padding: 5px 8px; font-size: 11px; margin-right: 2px;
+    }
+
+    /* Modales */
+    .modal-overlay { padding: 70px 4px 10px; }
+    .modal-content { padding: 18px 14px; border-radius: 10px; max-height: calc(100vh - 80px); }
+
+    /* Hero */
+    .hero-section { min-height: 50vh; padding-top: 70px; }
+    .hero-title { font-size: 34px; }
     .hero-subtitle { font-size: 14px; }
 
-    .section-header { padding-top: 50px; }
-    .section-header h2 { font-size: 24px; }
+    /* Secciones */
+    .section-header { padding-top: 40px; margin-bottom: 25px; }
+    .section-header h2 { font-size: 22px; }
 
-    .form-box h2 { font-size: 22px; }
-    .header-cliente h2 { font-size: 24px; }
+    /* Toast */
+    .toast { top: 70px; min-width: auto; max-width: calc(100% - 20px); right: 10px; left: 10px; }
 
-    .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
-    .toast { min-width: auto; max-width: calc(100% - 40px); right: 10px; left: 10px; }
+    /* reservas-header */
+    .reservas-header h3 { font-size: 15px; }
+
+    /* Info section */
+    .info-section { padding: 40px 16px; }
 }
