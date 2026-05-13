@@ -67,10 +67,10 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // El orden aquí no afecta — cada router tiene sus propias URLs definidas.
 // =============================================================================
 app.use(authRoutes);
-app.use(catalogoRoutes);
-app.use(reservasRoutes);
-app.use(adminRoutes);
-app.use(inventarioRoutes);
+app.use(catalogoRoutes);        
+app.use(reservasRoutes);                
+app.use(adminRoutes);           
+app.use(inventarioRoutes);      
 app.use(bitacoraRoutes);
 
 // =============================================================================
