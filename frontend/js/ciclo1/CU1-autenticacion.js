@@ -16,18 +16,18 @@
 async function manejarLogin(e) {
     e.preventDefault(); // Evitar que el formulario recargue la página
 
-    const email    = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
+    const identificador = document.getElementById('email').value.trim();
+    const password      = document.getElementById('password').value;
 
     // Validación básica en el cliente antes de ir al servidor
-    if (!email)    { mostrarToast('Ingresa tu correo electrónico', 'error'); return; }
-    if (!password) { mostrarToast('Ingresa tu contraseña', 'error'); return; }
+    if (!identificador) { mostrarToast('Ingresa tu CI o correo electrónico', 'error'); return; }
+    if (!password)      { mostrarToast('Ingresa tu contraseña', 'error'); return; }
 
     try {
         const res  = await fetch(API_BASE + '/login', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ email, contrasena: password })
+            body:    JSON.stringify({ identificador, contrasena: password })
         });
         const data = await res.json();
 

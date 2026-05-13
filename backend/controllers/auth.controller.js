@@ -121,10 +121,10 @@ const historialSesiones = [];       // últimos 50 logins exitosos
 // automáticamente para migrarla sin que el usuario note nada.
 // =============================================================================
 async function login(req, res) {
-    const { email, contrasena } = req.body;
+    const { identificador, contrasena } = req.body;
     const ahora = Date.now();
 
-    const estado = intentosLogin.get(email) || { intentos: 0, bloqueadoHasta: 0 };
+    const estado = intentosLogin.get(identificador) || { intentos: 0, bloqueadoHasta: 0 };
 
     // Verificar si la cuenta sigue bloqueada
     if (ahora < estado.bloqueadoHasta) {
@@ -136,10 +136,10 @@ async function login(req, res) {
     }
 
     try {
-        // Buscar el usuario por email (solo email, verificamos la contraseña después)
+        // Buscar por correo o por CI según lo que ingresó el usuario
         const result = await pool.query(
-            'SELECT ci, nombre, rol, email, contrasena FROM usuarios WHERE email = $1',
-            [email]
+            'SELECT ci, nombre, rol, email, contrasena FROM usuarios WHERE email = $1 OR ci::text = $1',
+            [identificador]
         );
 
         if (result.rows.length > 0) {
@@ -156,13 +156,13 @@ async function login(req, res) {
                 if (passwordCorrecta) {
                     // Migración automática: hashear y guardar en BD
                     const nuevoHash = await bcrypt.hash(contrasena, SALT_ROUNDS);
-                    await pool.query('UPDATE usuarios SET contrasena = $1 WHERE email = $2', [nuevoHash, email]);
-                    console.log(`🔐 Contraseña de ${email} migrada a bcrypt automáticamente`);
+                    await pool.query('UPDATE usuarios SET contrasena = $1 WHERE ci = $2', [nuevoHash, user.ci]);
+                    console.log(`🔐 Contraseña de ${user.email} migrada a bcrypt automáticamente`);
                 }
             }
 
             if (passwordCorrecta) {
-                intentosLogin.delete(email);
+                intentosLogin.delete(identificador);
                 historialSesiones.unshift({
                     nombre: user.nombre, email: user.email,
                     rol: user.rol, fecha: new Date().toLocaleString('es-BO')
@@ -179,18 +179,18 @@ async function login(req, res) {
         estado.intentos += 1;
         if (estado.intentos === 3) {
             estado.bloqueadoHasta = ahora + 30_000;
-            intentosLogin.set(email, estado);
+            intentosLogin.set(identificador, estado);
             return res.status(429).json({ success: false, message: 'Has fallado 3 veces. Cuenta bloqueada por 30 segundos.' });
         } else if (estado.intentos === 4) {
             estado.bloqueadoHasta = ahora + 60_000;
-            intentosLogin.set(email, estado);
+            intentosLogin.set(identificador, estado);
             return res.status(429).json({ success: false, message: 'Intento fallido. Cuenta bloqueada por 1 minuto.' });
         } else if (estado.intentos >= 5) {
             estado.bloqueadoHasta = ahora + 120_000;
-            intentosLogin.set(email, estado);
+            intentosLogin.set(identificador, estado);
             return res.status(429).json({ success: false, message: 'Intento fallido. Cuenta bloqueada por 2 minutos.' });
         } else {
-            intentosLogin.set(email, estado);
+            intentosLogin.set(identificador, estado);
             const restantes = 3 - estado.intentos;
             return res.status(401).json({ success: false, message: `Credenciales incorrectas. Te quedan ${restantes} intentos.` });
         }
@@ -382,7 +382,7 @@ async function menusUsuario(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.id_paquete_sist, ps.nombre AS paquete,
-                   cu.id_cu, cu.nombre_cu AS nombre, cu.descripcion AS cu_desc, cu.ruta
+                   cu.id_cu, cu.nombre, cu.descripcion AS cu_desc, cu.ruta
             FROM privilegios_usuario pu
             JOIN casos_uso cu ON pu.id_cu = cu.id_cu
             JOIN paquetes_sistema ps ON cu.id_paquete_sist = ps.id_paquete_sist
