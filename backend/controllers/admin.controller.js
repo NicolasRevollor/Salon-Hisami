@@ -663,10 +663,31 @@ async function editarCliente(req, res) {
 }
 
 // DELETE /api/admin/clientes/:ci — elimina un cliente y todos sus datos relacionados
+// Orden: detalle_comision → reservas (cascade: comision/detalle_reserva/pagos) → clientes → privilegios_usuario → usuarios
 async function eliminarCliente(req, res) {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        // Obtener id_cliente para poder borrar sus reservas
+        const clRes = await client.query('SELECT id_cliente FROM clientes WHERE ci_usuario = $1', [req.params.ci]);
+        if (clRes.rows.length) {
+            const id_cliente = clRes.rows[0].id_cliente;
+
+            // detalle_comision no tiene ON DELETE CASCADE → hay que borrarlo antes que reservas
+            await client.query(`
+                DELETE FROM detalle_comision
+                WHERE id_comision IN (
+                    SELECT c.id_comision FROM comision c
+                    JOIN reservas r ON c.id_cita = r.id_cita
+                    WHERE r.id_cliente = $1
+                )
+            `, [id_cliente]);
+
+            // Borrar reservas (cascade elimina comision, detalle_reserva y pagos)
+            await client.query('DELETE FROM reservas WHERE id_cliente = $1', [id_cliente]);
+        }
+
         await client.query('DELETE FROM clientes WHERE ci_usuario = $1', [req.params.ci]);
         await client.query('DELETE FROM privilegios_usuario WHERE ci_usuario = $1', [req.params.ci]);
         await client.query('DELETE FROM usuarios WHERE ci = $1', [req.params.ci]);
