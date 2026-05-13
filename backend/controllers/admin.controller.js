@@ -778,7 +778,7 @@ async function getPaquetesSistema(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.*,
-                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre)) AS casos_uso
+                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre_cu)) AS casos_uso
             FROM paquetes_sistema ps
             LEFT JOIN casos_uso cu ON ps.id_paquete_sist = cu.id_paquete_sist
             GROUP BY ps.id_paquete_sist
@@ -795,7 +795,7 @@ async function getPaquetesSistema(req, res) {
 async function getPrivilegios(req, res) {
     try {
         const result = await pool.query(`
-            SELECT cu.id_cu, cu.nombre, cu.id_paquete_sist,
+            SELECT cu.id_cu, cu.nombre_cu AS nombre, cu.id_paquete_sist,
                    EXISTS(
                      SELECT 1 FROM privilegios_usuario pu
                      WHERE pu.ci_usuario = $1 AND pu.id_cu = cu.id_cu AND pu.habilitado = true
