@@ -382,7 +382,7 @@ async function menusUsuario(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.id_paquete_sist, ps.nombre AS paquete,
-                   cu.id_cu, cu.nombre, cu.descripcion AS cu_desc, cu.ruta
+                   cu.id_cu, cu.nombre_cu AS nombre, cu.descripcion AS cu_desc, cu.ruta
             FROM privilegios_usuario pu
             JOIN casos_uso cu ON pu.id_cu = cu.id_cu
             JOIN paquetes_sistema ps ON cu.id_paquete_sist = ps.id_paquete_sist

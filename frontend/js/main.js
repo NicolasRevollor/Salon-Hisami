@@ -5,7 +5,7 @@
 // =============================================================================
 
 // ─── VARIABLES GLOBALES ──────────────────────────────────────────────────────
-// API_BASE → dirección del servidor. El fr';ontend siempre pide datos aquí.
+// API_BASE → dirección del servidor. El frontend siempre pide datos aquí.
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://hisamisalon.com';
 
 // usuarioActual → guarda los datos del usuario logueado ({ ci, nombre, rol, email })
