@@ -54,7 +54,8 @@ async function registrarEvento(ci_usuario, nombre_usuario, rol, accion, descripc
              VALUES ($1, $2, $3, $4, $5)`,
             [ci_usuario || '—', nombre_usuario || '—', rol || '—', accion, descripcion || '']
         );
-    } catch {
+    } catch (err) {
+        console.log("=== ERROR BITACORA ===", err.message);
         // Silencioso: nunca crashear el flujo principal por un error de bitácora
     }
 }
@@ -83,7 +84,7 @@ async function getBitacora(req, res) {
     try {
         const result = await pool.query(
             `SELECT id_bitacora, ci_usuario, nombre_usuario, rol, accion, descripcion,
-                    TO_CHAR(fecha_hora, 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora
+                    TO_CHAR(fecha_hora AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora
              FROM bitacora
              ORDER BY fecha_hora DESC
              LIMIT 500`

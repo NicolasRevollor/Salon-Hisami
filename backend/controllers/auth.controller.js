@@ -169,7 +169,8 @@ async function login(req, res) {
                 });
                 if (historialSesiones.length > 50) historialSesiones.pop();
                 // Registrar en bitácora (falla silenciosamente si la tabla no existe aún)
-                registrarEvento(user.ci, user.nombre, user.rol, 'LOGIN', 'Inicio de sesión exitoso');
+                console.log("ANTES DE BITACORA:", user.ci, user.nombre);
+                await registrarEvento(user.ci, user.nombre, user.rol, "LOGIN", "Inicio de sesión exitoso");
                 // No enviar el hash de contraseña al frontend
                 return res.json({ success: true, user: { ci: user.ci, nombre: user.nombre, rol: user.rol, email: user.email } });
             }
