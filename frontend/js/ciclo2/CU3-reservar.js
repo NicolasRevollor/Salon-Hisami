@@ -5,7 +5,7 @@
 //        → hora → método de pago → revisar disponibilidad → confirmar
 // BD: reservas(id_cita, ci_cliente, ci_esteticista, fecha, hora_inicio,
 //              metodo_pago, estado, id_servicio, id_paquete, reprogramaciones)
-// Depende de: main.js (API_BASE, usuarioActual, mostrarToast, mostrarSeccion,git status
+// Depende de: main.js (API_BASE, usuarioActual, mostrarToast, mostrarSeccion,
 //             getEsteticistasSeleccionadas, formatearFecha, formatearFechaCorta)
 //             panel-cliente.js (cargarReservasCliente — refresca "Mis Citas")
 // =============================================================================
