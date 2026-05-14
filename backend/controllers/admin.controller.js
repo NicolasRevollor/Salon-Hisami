@@ -608,9 +608,10 @@ async function eliminarEspecialidad(req, res) {
 async function getClientes(req, res) {
     try {
         const result = await pool.query(`
-            SELECT u.ci, u.nombre, u.email, u.telefono
+            SELECT u.ci, u.nombre, u.email, u.telefono,
+                   (SELECT COUNT(*) FROM reservas r WHERE r.id_cliente = cl.id_cliente) AS total_reservas
             FROM usuarios u
-            JOIN clientes c ON u.ci = c.ci_usuario
+            JOIN clientes cl ON u.ci = cl.ci_usuario
             ORDER BY u.nombre ASC
         `);
         res.json({ success: true, clientes: result.rows });

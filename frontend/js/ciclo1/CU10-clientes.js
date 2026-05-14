@@ -15,7 +15,7 @@ async function cargarClientesAdmin() {
 
         const tbody = document.getElementById('tabla-admin-clientes-body');
         if (!data.clientes.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;">No hay clientes registrados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;">No hay clientes registrados.</td></tr>';
             return;
         }
         // Generar una fila por cada cliente con sus datos y botones de acción
@@ -25,6 +25,7 @@ async function cargarClientesAdmin() {
                 <td>${c.nombre}</td>
                 <td>${c.telefono || '—'}</td>
                 <td>${c.email}</td>
+                <td>${c.total_reservas}</td>
                 <td>
                     <button class="btn-accion editar"
                         onclick="abrirModalEditarCliente('${c.ci}','${c.nombre}','${c.telefono || ''}','${c.email}')">
