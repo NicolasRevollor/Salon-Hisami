@@ -46,6 +46,7 @@ const ctrl   = require('../controllers/admin.controller');
 // ── Empleados ──────────────────────────────────────────────────────────────
 router.get('/api/admin/empleados',                              ctrl.getEmpleados);
 router.post('/api/admin/empleados',                             ctrl.crearEmpleado);
+router.put('/api/admin/empleados/:ci/estado',                   ctrl.toggleEstadoEmpleado);
 router.put('/api/admin/empleados/:ci',                          ctrl.editarEmpleado);
 router.delete('/api/admin/empleados/:ci',                       ctrl.eliminarEmpleado);
 router.get('/api/admin/empleados/:ci/especialidades',           ctrl.getEspEmpleado);

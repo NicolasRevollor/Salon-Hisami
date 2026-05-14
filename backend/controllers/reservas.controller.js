@@ -160,24 +160,27 @@ async function verificarDisponibilidad(req, res) {
     const { ci_esteticista, fecha, hora } = req.query;
     try {
         const pers = await pool.query(
-            'SELECT id_esteticista FROM personal WHERE ci_usuario = $1',
+            'SELECT id_esteticista, estado FROM personal WHERE ci_usuario = $1',
             [ci_esteticista]
         );
         if (!pers.rows.length) {
-            return res.json({ success: true, disponible: true }); // no existe → asumir libre
+            return res.json({ success: true, disponible: true, activo: true });
         }
-        const id_est = pers.rows[0].id_esteticista;
+        const { id_esteticista, estado } = pers.rows[0];
+        const activo = estado === 'Activo';
 
-        // Buscar si hay alguna reserva activa en exactamente ese día y esa hora
+        if (!activo) {
+            return res.json({ success: true, disponible: false, activo: false });
+        }
+
         const result = await pool.query(
             `SELECT id_cita FROM reservas
              WHERE id_esteticista = $1 AND fecha = $2 AND hora = $3 AND estado != 'Cancelada'`,
-            [id_est, fecha, hora]
+            [id_esteticista, fecha, hora]
         );
-        // disponible=true si NO encontró ninguna reserva (array vacío)
-        res.json({ success: true, disponible: result.rows.length === 0 });
+        res.json({ success: true, disponible: result.rows.length === 0, activo: true });
     } catch {
-        res.json({ success: true, disponible: true }); // en caso de error, asumir libre
+        res.json({ success: true, disponible: true, activo: true });
     }
 }
 

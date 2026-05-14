@@ -39,13 +39,13 @@ const SALT_ROUNDS = 10;
 async function getEmpleados(req, res) {
     try {
         const result = await pool.query(`
-            SELECT p.id_esteticista, u.ci, u.nombre, u.email, u.telefono,
+            SELECT p.id_esteticista, u.ci, u.nombre, u.email, u.telefono, p.estado,
                    STRING_AGG(e.nombre_especialidad, ', ') AS especialidades
             FROM personal p
             JOIN usuarios u ON p.ci_usuario = u.ci
             LEFT JOIN personal_especialidades pe ON p.id_esteticista = pe.id_esteticista
             LEFT JOIN especialidades e ON pe.id_especialidad = e.id_especialidad
-            GROUP BY p.id_esteticista, u.ci, u.nombre, u.email, u.telefono
+            GROUP BY p.id_esteticista, u.ci, u.nombre, u.email, u.telefono, p.estado
             ORDER BY u.nombre ASC
         `);
         res.json({ success: true, empleados: result.rows });
@@ -152,6 +152,19 @@ async function crearEmpleado(req, res) {
 // =============================================================================
 // PUT /api/admin/empleados/:ci
 // Actualiza nombre, teléfono y correo de un empleado. No cambia la contraseña.
+// PUT /api/admin/empleados/:ci/estado — alterna entre Activo e Inactivo
+async function toggleEstadoEmpleado(req, res) {
+    try {
+        const r = await pool.query('SELECT estado FROM personal WHERE ci_usuario = $1', [req.params.ci]);
+        if (!r.rows.length) return res.status(404).json({ success: false, message: 'Empleado no encontrado.' });
+        const nuevoEstado = r.rows[0].estado === 'Activo' ? 'Inactivo' : 'Activo';
+        await pool.query('UPDATE personal SET estado = $1 WHERE ci_usuario = $2', [nuevoEstado, req.params.ci]);
+        res.json({ success: true, estado: nuevoEstado });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
 // =============================================================================
 async function editarEmpleado(req, res) {
     const { nombre, telefono, email } = req.body;
@@ -778,7 +791,7 @@ async function getPaquetesSistema(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.*,
-                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre_cu)) AS casos_uso
+                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre)) AS casos_uso
             FROM paquetes_sistema ps
             LEFT JOIN casos_uso cu ON ps.id_paquete_sist = cu.id_paquete_sist
             GROUP BY ps.id_paquete_sist
@@ -795,7 +808,7 @@ async function getPaquetesSistema(req, res) {
 async function getPrivilegios(req, res) {
     try {
         const result = await pool.query(`
-            SELECT cu.id_cu, cu.nombre_cu AS nombre, cu.id_paquete_sist,
+            SELECT cu.id_cu, cu.nombre AS nombre, cu.id_paquete_sist,
                    EXISTS(
                      SELECT 1 FROM privilegios_usuario pu
                      WHERE pu.ci_usuario = $1 AND pu.id_cu = cu.id_cu AND pu.habilitado = true
@@ -831,7 +844,7 @@ async function setPrivilegio(req, res) {
 // Exportar todas las funciones para que routes/admin.routes.js las use
 module.exports = {
     // Empleados (CU11)
-    getEmpleados, crearEmpleado, editarEmpleado, eliminarEmpleado,
+    getEmpleados, crearEmpleado, editarEmpleado, eliminarEmpleado, toggleEstadoEmpleado,
     // Especialidades de empleado
     getEspEmpleado, agregarEspEmpleado, eliminarEspEmpleado,
     // Especialidades catálogo global (CU12)

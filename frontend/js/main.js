@@ -350,6 +350,12 @@ function navegarCU(nombreCU) {
 
     if (tabGestion) { mostrarCentroGestion(tabGestion); return; }
 
+    // CU3 "Gestionar Cita/Reserva": admin → tab Reservas del Centro de Gestión; otros → modal
+    if (n.includes('cita') || n.includes('reserva')) {
+        if (usuarioActual.rol === 'Administrador') { mostrarCentroGestion('citas'); return; }
+        mostrarSeccion('panel-cliente'); abrirModalReserva(); return;
+    }
+
     // Administrador sin match específico → Centro de Gestión > Servicios
     if (usuarioActual.rol === 'Administrador') { mostrarCentroGestion('servicios'); return; }
 
@@ -358,7 +364,6 @@ function navegarCU(nombreCU) {
     if (n.includes('comisi') && usuarioActual.rol === 'Personal') { mostrarSeccion('panel-personal'); cambiarTabPersonal('comisiones'); return; }
 
     // ── CUs del Cliente ──
-    if (n.includes('cita') || n.includes('reserva'))   { mostrarSeccion('panel-cliente'); abrirModalReserva(); return; }
     if (n.includes('catálogo') || n.includes('catalogo')) { mostrarSeccion('landing'); return; }
     if (n.includes('favorit'))                         { mostrarSeccion('panel-cliente'); cambiarTabCliente('favoritos'); return; }
 

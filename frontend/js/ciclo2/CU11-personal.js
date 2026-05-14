@@ -21,7 +21,8 @@ async function cargarEmpleadosAdmin() {
         tbody.innerHTML = '';
 
         data.empleados.forEach(emp => {
-            empleadosCache[emp.ci] = emp; // guardar por CI para acceso rápido
+            empleadosCache[emp.ci] = emp;
+            const activo = emp.estado === 'Activo';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${emp.nombre}</td>
@@ -32,6 +33,12 @@ async function cargarEmpleadosAdmin() {
                 <td>
                     <button class="btn-table"
                         onclick="abrirModalEditarEmpleado('${emp.ci}')">Editar</button>
+                    <button
+                        style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;
+                               background:${activo ? '#28a745' : '#dc3545'};color:#fff;"
+                        onclick="toggleEstadoEmpleado('${emp.ci}')">
+                        ${activo ? 'Activo' : 'No Activo'}
+                    </button>
                     <button class="btn-table-danger"
                         onclick="eliminarEmpleado('${emp.ci}','${emp.nombre.replace(/'/g,"\\'")}')">Eliminar</button>
                 </td>`;
@@ -206,6 +213,22 @@ async function manejarEditarEmpleado(e) {
             cargarEmpleadosAdmin();
         } else { mostrarToast(data.message || 'Error al actualizar', 'error'); }
     } catch { mostrarToast('Error de conexión', 'error'); }
+}
+
+// Alterna el estado Activo / No Activo del empleado y refresca la tabla
+async function toggleEstadoEmpleado(ci) {
+    try {
+        const res  = await fetch(API_BASE + '/api/admin/empleados/' + ci + '/estado', { method: 'PUT' });
+        const data = await res.json();
+        if (data.success) {
+            mostrarToast('Empleado marcado como ' + data.estado);
+            cargarEmpleadosAdmin();
+        } else {
+            mostrarToast(data.message || 'Error al cambiar estado', 'error');
+        }
+    } catch {
+        mostrarToast('Error de conexión', 'error');
+    }
 }
 
 // Pide confirmación y elimina al empleado junto con todas sus relaciones en la BD

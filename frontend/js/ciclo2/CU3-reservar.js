@@ -256,12 +256,22 @@ async function revisarReserva() {
         const resultados = await Promise.all(ests.map(est =>
             fetch(`${API_BASE}/api/verificar-disponibilidad?ci_esteticista=${est.ci}&fecha=${fecha}&hora=${hora}`)
                 .then(r => r.json())
-                .then(d => ({ nombre: est.nombre, disponible: d.disponible }))
-                .catch(() => ({ nombre: est.nombre, disponible: true }))
+                .then(d => ({ nombre: est.nombre, disponible: d.disponible, activo: d.activo !== false }))
+                .catch(() => ({ nombre: est.nombre, disponible: true, activo: true }))
         ));
 
-        const noDisponibles = resultados.filter(r => !r.disponible);
-        if (noDisponibles.length === 0) {
+        const inactivos    = resultados.filter(r => !r.activo);
+        const noDisponibles = resultados.filter(r => r.activo && !r.disponible);
+
+        if (inactivos.length > 0) {
+            const msgs = [];
+            if (inactivos.length > 0)
+                msgs.push(`✕ ${inactivos.map(r => r.nombre).join(', ')} está(n) marcado(s) como No Activo.`);
+            if (noDisponibles.length > 0)
+                msgs.push(`✕ ${noDisponibles.map(r => r.nombre).join(', ')} ya tiene(n) una reserva en ese horario.`);
+            divDisp.innerHTML = msgs.map(m => `<span class="disp-error">${m}</span>`).join('<br>');
+            btnConfirm.style.display = 'none';
+        } else if (noDisponibles.length === 0) {
             divDisp.innerHTML = `<span class="disp-ok">✓ ${ests.length > 1
                 ? 'Todas las esteticistas están disponibles' : 'La esteticista está disponible'} en ese horario</span>`;
             btnConfirm.style.display = 'block';
