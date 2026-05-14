@@ -28,9 +28,12 @@ async function initBitacora() {
                 rol            VARCHAR(50),
                 accion         VARCHAR(100) NOT NULL,
                 descripcion    TEXT,
+                estado         VARCHAR(20) DEFAULT 'Exitoso',
                 fecha_hora     TIMESTAMP DEFAULT NOW()
             )
         `);
+        // Agrega la columna estado si la tabla ya existía sin ella (migración segura)
+        await pool.query(`ALTER TABLE bitacora ADD COLUMN IF NOT EXISTS estado VARCHAR(20) DEFAULT 'Exitoso'`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_bitacora_fecha ON bitacora (fecha_hora DESC)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_bitacora_ci ON bitacora (ci_usuario)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_bitacora_accion ON bitacora (accion)`);
@@ -46,13 +49,14 @@ initBitacora();
 // ci_usuario, nombre_usuario, rol → quién hizo la acción
 // accion                          → código de la acción (ej: 'LOGIN')
 // descripcion                     → detalle legible (ej: 'Inicio de sesión exitoso')
+// estado                          → resultado de la acción ('Exitoso' o 'Fallido'), por defecto 'Exitoso'
 // -----------------------------------------------------------------------------
-async function registrarEvento(ci_usuario, nombre_usuario, rol, accion, descripcion) {
+async function registrarEvento(ci_usuario, nombre_usuario, rol, accion, descripcion, estado = 'Exitoso') {
     try {
         await pool.query(
-            `INSERT INTO bitacora (ci_usuario, nombre_usuario, rol, accion, descripcion)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [ci_usuario || '—', nombre_usuario || '—', rol || '—', accion, descripcion || '']
+            `INSERT INTO bitacora (ci_usuario, nombre_usuario, rol, accion, descripcion, estado)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [ci_usuario || '—', nombre_usuario || '—', rol || '—', accion, descripcion || '', estado]
         );
     } catch (err) {
         console.log("=== ERROR BITACORA ===", err.message);
@@ -66,12 +70,14 @@ async function registrarEvento(ci_usuario, nombre_usuario, rol, accion, descripc
 // cliente (ej: LOGOUT, que es completamente front-end y no pasa por el servidor).
 // Recibe: { ci_usuario, nombre_usuario, rol, accion, descripcion }
 // =============================================================================
+// Recibe: { ci_usuario, nombre_usuario, rol, accion, descripcion, estado }
+// estado es opcional — por defecto se asume 'Exitoso'
 async function registrarEventoAPI(req, res) {
-    const { ci_usuario, nombre_usuario, rol, accion, descripcion } = req.body;
+    const { ci_usuario, nombre_usuario, rol, accion, descripcion, estado } = req.body;
     if (!accion) {
         return res.status(400).json({ success: false, message: 'El campo accion es obligatorio.' });
     }
-    await registrarEvento(ci_usuario, nombre_usuario, rol, accion, descripcion);
+    await registrarEvento(ci_usuario, nombre_usuario, rol, accion, descripcion, estado || 'Exitoso');
     res.json({ success: true });
 }
 
@@ -82,8 +88,9 @@ async function registrarEventoAPI(req, res) {
 // =============================================================================
 async function getBitacora(req, res) {
     try {
+        // Incluye el campo estado para mostrar si la acción fue Exitosa o Fallida
         const result = await pool.query(
-            `SELECT id_bitacora, ci_usuario, nombre_usuario, rol, accion, descripcion,
+            `SELECT id_bitacora, ci_usuario, nombre_usuario, rol, accion, descripcion, estado,
                     TO_CHAR(fecha_hora AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora
              FROM bitacora
              ORDER BY fecha_hora DESC

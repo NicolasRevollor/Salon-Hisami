@@ -15,7 +15,7 @@ async function cargarClientesAdmin() {
 
         const tbody = document.getElementById('tabla-admin-clientes-body');
         if (!data.clientes.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;">No hay clientes registrados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;">No hay clientes registrados.</td></tr>';
             return;
         }
         // Generar una fila por cada cliente con sus datos y botones de acción
@@ -25,10 +25,11 @@ async function cargarClientesAdmin() {
                 <td>${c.nombre}</td>
                 <td>${c.telefono || '—'}</td>
                 <td>${c.email}</td>
+                <td>${c.tipo || '—'}</td>
                 <td>${c.total_reservas}</td>
                 <td>
                     <button class="btn-accion editar"
-                        onclick="abrirModalEditarCliente('${c.ci}','${c.nombre}','${c.telefono || ''}','${c.email}')">
+                        onclick="abrirModalEditarCliente('${c.ci}','${c.nombre}','${c.telefono || ''}','${c.email}','${c.tipo || 'Regular'}')">
                         Editar
                     </button>
                     <button class="btn-accion eliminar"
@@ -63,6 +64,7 @@ async function manejarCrearCliente(e) {
     const telefono   = document.getElementById('nuevo-cliente-telefono').value.trim();
     const email      = document.getElementById('nuevo-cliente-email').value.trim();
     const contrasena = document.getElementById('nuevo-cliente-contrasena').value.trim();
+    const tipo       = document.getElementById('nuevo-cliente-tipo').value;
 
     if (!ci || !nombre || !email || !contrasena) {
         mostrarToast('CI, nombre, correo y contraseña son obligatorios', 'error'); return;
@@ -75,7 +77,7 @@ async function manejarCrearCliente(e) {
         const res  = await fetch(API_BASE + '/api/admin/clientes', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ ci, nombre, telefono, email, contrasena })
+            body:    JSON.stringify({ ci, nombre, telefono, email, contrasena, tipo })
         });
         const data = await res.json();
         if (data.success) {
@@ -91,11 +93,14 @@ async function manejarCrearCliente(e) {
 }
 
 // Abre el modal de edición pre-cargando todos los campos con los datos actuales del cliente
-function abrirModalEditarCliente(ci, nombre, telefono, email) {
+function abrirModalEditarCliente(ci, nombre, telefono, email, tipo) {
     document.getElementById('editar-cliente-ci').value       = ci;
     document.getElementById('editar-cliente-nombre').value   = nombre;
     document.getElementById('editar-cliente-telefono').value = telefono;
     document.getElementById('editar-cliente-email').value    = email;
+    // Pre-seleccionar el tipo de cliente en el select (Regular o VIP)
+    const selTipo = document.getElementById('editar-cliente-tipo');
+    if (selTipo) selTipo.value = tipo || 'Regular';
     document.getElementById('modal-editar-cliente').classList.remove('seccion-oculta');
 }
 
@@ -111,6 +116,7 @@ async function manejarEditarCliente(e) {
     const nombre   = document.getElementById('editar-cliente-nombre').value.trim();
     const telefono = document.getElementById('editar-cliente-telefono').value.trim();
     const email    = document.getElementById('editar-cliente-email').value.trim();
+    const tipo     = document.getElementById('editar-cliente-tipo').value;
 
     if (!nombre || !email) { mostrarToast('Nombre y correo son obligatorios', 'error'); return; }
 
@@ -118,7 +124,7 @@ async function manejarEditarCliente(e) {
         const res  = await fetch(API_BASE + '/api/admin/clientes/' + ci, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, telefono, email })
+            body: JSON.stringify({ nombre, telefono, email, tipo })
         });
         const data = await res.json();
         if (data.success) {

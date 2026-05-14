@@ -39,13 +39,13 @@ const SALT_ROUNDS = 10;
 async function getEmpleados(req, res) {
     try {
         const result = await pool.query(`
-            SELECT p.id_esteticista, u.ci, u.nombre, u.email, u.telefono, p.estado,
+            SELECT p.id_esteticista, u.ci, u.nombre, u.email, u.telefono, p.estado, p.area,
                    STRING_AGG(e.nombre_especialidad, ', ') AS especialidades
             FROM personal p
             JOIN usuarios u ON p.ci_usuario = u.ci
             LEFT JOIN personal_especialidades pe ON p.id_esteticista = pe.id_esteticista
             LEFT JOIN especialidades e ON pe.id_especialidad = e.id_especialidad
-            GROUP BY p.id_esteticista, u.ci, u.nombre, u.email, u.telefono, p.estado
+            GROUP BY p.id_esteticista, u.ci, u.nombre, u.email, u.telefono, p.estado, p.area
             ORDER BY u.nombre ASC
         `);
         res.json({ success: true, empleados: result.rows });
@@ -67,7 +67,7 @@ async function getEmpleados(req, res) {
 // Recibe: { ci, nombre, telefono, email, contrasena, especialidades[] }
 // =============================================================================
 async function crearEmpleado(req, res) {
-    const { ci, nombre, telefono, email, contrasena, especialidades } = req.body;
+    const { ci, nombre, telefono, email, contrasena, especialidades, area } = req.body;
 
     if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(contrasena)) {
         return res.status(400).json({
@@ -88,10 +88,10 @@ async function crearEmpleado(req, res) {
             [ci, nombre, telefono, email, hash]
         );
 
-        // 2. Vincularlo como esteticista en la tabla personal
+        // 2. Vincularlo como esteticista en la tabla personal (incluye el área de trabajo)
         const perRes = await client.query(
-            `INSERT INTO personal (ci_usuario, estado) VALUES ($1, 'Activo') RETURNING id_esteticista`,
-            [ci]
+            `INSERT INTO personal (ci_usuario, estado, area) VALUES ($1, 'Activo', $2) RETURNING id_esteticista`,
+            [ci, area || null]
         );
         const id_esteticista = perRes.rows[0].id_esteticista;
 
@@ -166,13 +166,23 @@ async function toggleEstadoEmpleado(req, res) {
 }
 
 // =============================================================================
+// PUT /api/admin/empleados/:ci — actualiza nombre, teléfono, correo y área del empleado
+// =============================================================================
 async function editarEmpleado(req, res) {
-    const { nombre, telefono, email } = req.body;
+    const { nombre, telefono, email, area } = req.body;
     try {
+        // Actualizar datos personales en la tabla usuarios
         await pool.query(
             'UPDATE usuarios SET nombre = $1, telefono = $2, email = $3 WHERE ci = $4',
             [nombre, telefono, email, req.params.ci]
         );
+        // Actualizar el área de trabajo en la tabla personal (si se envió el campo)
+        if (area !== undefined) {
+            await pool.query(
+                'UPDATE personal SET area = $1 WHERE ci_usuario = $2',
+                [area || null, req.params.ci]
+            );
+        }
         res.json({ success: true, message: 'Empleado actualizado.' });
     } catch (err) {
         if (err.code === '23505') {
@@ -528,11 +538,11 @@ async function eliminarPaquete(req, res) {
 // CU12 — ESPECIALIDADES (catálogo global de especialidades)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// GET /api/admin/especialidades — lista todas las especialidades del sistema
+// GET /api/admin/especialidades — lista todas las especialidades con su descripción
 async function getEspecialidadesAdmin(req, res) {
     try {
         const result = await pool.query(
-            'SELECT id_especialidad, nombre_especialidad FROM especialidades ORDER BY nombre_especialidad ASC'
+            'SELECT id_especialidad, nombre_especialidad, descripcion FROM especialidades ORDER BY nombre_especialidad ASC'
         );
         res.json({ success: true, especialidades: result.rows });
     } catch (err) {
@@ -540,16 +550,16 @@ async function getEspecialidadesAdmin(req, res) {
     }
 }
 
-// POST /api/admin/especialidades — crea una nueva especialidad
+// POST /api/admin/especialidades — crea una nueva especialidad con nombre y descripción opcional
 async function crearEspecialidad(req, res) {
-    const { nombre_especialidad } = req.body;
+    const { nombre_especialidad, descripcion } = req.body;
     if (!nombre_especialidad?.trim()) {
         return res.status(400).json({ success: false, message: 'El nombre es obligatorio.' });
     }
     try {
         const result = await pool.query(
-            'INSERT INTO especialidades (nombre_especialidad) VALUES ($1) RETURNING *',
-            [nombre_especialidad.trim()]
+            'INSERT INTO especialidades (nombre_especialidad, descripcion) VALUES ($1, $2) RETURNING *',
+            [nombre_especialidad.trim(), descripcion || null]
         );
         res.json({ success: true, message: 'Especialidad creada.', especialidad: result.rows[0] });
     } catch (err) {
@@ -560,16 +570,16 @@ async function crearEspecialidad(req, res) {
     }
 }
 
-// PUT /api/admin/especialidades/:id — edita el nombre de una especialidad
+// PUT /api/admin/especialidades/:id — edita el nombre y descripción de una especialidad
 async function editarEspecialidad(req, res) {
-    const { nombre_especialidad } = req.body;
+    const { nombre_especialidad, descripcion } = req.body;
     if (!nombre_especialidad?.trim()) {
         return res.status(400).json({ success: false, message: 'El nombre es obligatorio.' });
     }
     try {
         const result = await pool.query(
-            'UPDATE especialidades SET nombre_especialidad = $1 WHERE id_especialidad = $2 RETURNING *',
-            [nombre_especialidad.trim(), req.params.id]
+            'UPDATE especialidades SET nombre_especialidad = $1, descripcion = $2 WHERE id_especialidad = $3 RETURNING *',
+            [nombre_especialidad.trim(), descripcion || null, req.params.id]
         );
         if (result.rowCount === 0) {
             return res.status(404).json({ success: false, message: 'Especialidad no encontrada.' });
@@ -604,11 +614,11 @@ async function eliminarEspecialidad(req, res) {
 // CU10 — CLIENTES (gestión de clientes desde el panel admin)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// GET /api/admin/clientes — lista todos los clientes registrados
+// GET /api/admin/clientes — lista todos los clientes con su tipo y cantidad de reservas
 async function getClientes(req, res) {
     try {
         const result = await pool.query(`
-            SELECT u.ci, u.nombre, u.email, u.telefono,
+            SELECT u.ci, u.nombre, u.email, u.telefono, u.tipo,
                    (SELECT COUNT(*) FROM reservas r WHERE r.id_cliente = cl.id_cliente) AS total_reservas
             FROM usuarios u
             JOIN clientes cl ON u.ci = cl.ci_usuario
@@ -621,8 +631,9 @@ async function getClientes(req, res) {
 }
 
 // POST /api/admin/clientes — crea un nuevo cliente desde el panel admin
+// Recibe: { ci, nombre, email, telefono, contrasena, tipo }
 async function crearCliente(req, res) {
-    const { ci, nombre, email, telefono, contrasena } = req.body;
+    const { ci, nombre, email, telefono, contrasena, tipo } = req.body;
     if (!ci || !nombre || !email || !contrasena) {
         return res.status(400).json({ success: false, message: 'CI, nombre, correo y contraseña son obligatorios.' });
     }
@@ -632,10 +643,11 @@ async function crearCliente(req, res) {
     try {
         await client.query('BEGIN');
         const hash = await bcrypt.hash(contrasena, 10);
+        // Incluir el campo tipo al crear el usuario (ej: 'Regular', 'VIP')
         await client.query(
-            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, rol)
-             VALUES ($1, $2, $3, $4, $5, 'Cliente')`,
-            [ci, nombre.trim(), telefono || null, email.trim(), hash]
+            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, rol, tipo)
+             VALUES ($1, $2, $3, $4, $5, 'Cliente', $6)`,
+            [ci, nombre.trim(), telefono || null, email.trim(), hash, tipo || 'Regular']
         );
         await client.query(`INSERT INTO clientes (ci_usuario) VALUES ($1)`, [ci]);
         for (const id_cu of [1, 2, 3]) {
@@ -659,13 +671,13 @@ async function crearCliente(req, res) {
     }
 }
 
-// PUT /api/admin/clientes/:ci — edita nombre, teléfono y correo de un cliente
+// PUT /api/admin/clientes/:ci — edita nombre, teléfono, correo y tipo de un cliente
 async function editarCliente(req, res) {
-    const { nombre, telefono, email } = req.body;
+    const { nombre, telefono, email, tipo } = req.body;
     try {
         await pool.query(
-            'UPDATE usuarios SET nombre = $1, telefono = $2, email = $3 WHERE ci = $4',
-            [nombre, telefono, email, req.params.ci]
+            'UPDATE usuarios SET nombre = $1, telefono = $2, email = $3, tipo = $4 WHERE ci = $5',
+            [nombre, telefono, email, tipo || null, req.params.ci]
         );
         res.json({ success: true, message: 'Cliente actualizado.' });
     } catch (err) {
@@ -792,7 +804,7 @@ async function getPaquetesSistema(req, res) {
     try {
         const result = await pool.query(`
             SELECT ps.*,
-                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre_cu)) AS casos_uso
+                   json_agg(json_build_object('id_cu', cu.id_cu, 'nombre', cu.nombre, 'modulo', cu.modulo)) AS casos_uso
             FROM paquetes_sistema ps
             LEFT JOIN casos_uso cu ON ps.id_paquete_sist = cu.id_paquete_sist
             GROUP BY ps.id_paquete_sist
@@ -805,16 +817,16 @@ async function getPaquetesSistema(req, res) {
 }
 
 // GET /api/admin/privilegios/:ci
-// Devuelve todos los CUs marcando cuáles tiene habilitados el usuario con ese CI
+// Devuelve todos los CUs marcando cuáles tiene habilitados el usuario con ese CI.
+// También incluye modulo (de casos_uso) y detalle (de privilegios_usuario).
 async function getPrivilegios(req, res) {
     try {
         const result = await pool.query(`
-            SELECT cu.id_cu, cu.nombre_cu AS nombre, cu.id_paquete_sist,
-                   EXISTS(
-                     SELECT 1 FROM privilegios_usuario pu
-                     WHERE pu.ci_usuario = $1 AND pu.id_cu = cu.id_cu AND pu.habilitado = true
-                   ) AS tiene
+            SELECT cu.id_cu, cu.nombre AS nombre, cu.id_paquete_sist, cu.modulo,
+                   COALESCE(pu.habilitado, false) AS tiene,
+                   pu.detalle
             FROM casos_uso cu
+            LEFT JOIN privilegios_usuario pu ON pu.ci_usuario = $1 AND pu.id_cu = cu.id_cu
             ORDER BY cu.id_paquete_sist, cu.id_cu
         `, [req.params.ci]);
         res.json({ success: true, privilegios: result.rows });
@@ -824,17 +836,17 @@ async function getPrivilegios(req, res) {
 }
 
 // POST /api/admin/privilegios
-// Activa o desactiva un CU para un usuario específico.
-// Recibe: { ci_usuario, id_cu, habilitado: true|false }
+// Activa o desactiva un CU y guarda el campo detalle opcional.
+// Recibe: { ci_usuario, id_cu, habilitado: true|false, detalle: string|null }
 async function setPrivilegio(req, res) {
-    const { ci_usuario, id_cu, habilitado } = req.body;
+    const { ci_usuario, id_cu, habilitado, detalle } = req.body;
     try {
-        // INSERT si no existe, UPDATE si ya existe — funciona para activar Y desactivar
+        // INSERT si no existe, UPDATE si ya existe — guarda habilitado y detalle juntos
         await pool.query(
-            `INSERT INTO privilegios_usuario (ci_usuario, id_cu, habilitado)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (ci_usuario, id_cu) DO UPDATE SET habilitado = $3`,
-            [ci_usuario, id_cu, habilitado === true || habilitado === 'true']
+            `INSERT INTO privilegios_usuario (ci_usuario, id_cu, habilitado, detalle)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (ci_usuario, id_cu) DO UPDATE SET habilitado = $3, detalle = $4`,
+            [ci_usuario, id_cu, habilitado === true || habilitado === 'true', detalle || null]
         );
         res.json({ success: true, message: 'Privilegio actualizado.' });
     } catch (err) {

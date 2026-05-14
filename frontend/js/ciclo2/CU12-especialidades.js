@@ -16,16 +16,17 @@ async function cargarEspecialidadesAdmin() {
 
         const tbody = document.getElementById('tabla-admin-especialidades-body');
         if (!data.especialidades.length) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;padding:20px;">No hay especialidades registradas.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px;">No hay especialidades registradas.</td></tr>';
             return;
         }
         tbody.innerHTML = data.especialidades.map(e => `
             <tr>
                 <td>${e.id_especialidad}</td>
                 <td>${e.nombre_especialidad}</td>
+                <td style="font-size:13px;color:#555;">${e.descripcion || '—'}</td>
                 <td>
                     <button class="btn-accion editar"
-                        onclick="abrirModalEditarEspecialidad(${e.id_especialidad}, '${e.nombre_especialidad.replace(/'/g,"\\'")}')">
+                        onclick="abrirModalEditarEspecialidad(${e.id_especialidad}, '${e.nombre_especialidad.replace(/'/g,"\\'")}', '${(e.descripcion||'').replace(/'/g,"\\'")}')">
                         Editar
                     </button>
                     <button class="btn-accion eliminar"
@@ -40,9 +41,10 @@ async function cargarEspecialidadesAdmin() {
     }
 }
 
-// Abre el modal de nueva especialidad y pone el foco en el campo de nombre
+// Abre el modal de nueva especialidad y limpia ambos campos (nombre y descripción)
 function abrirModalEspecialidad() {
     document.getElementById('input-nueva-especialidad').value = '';
+    document.getElementById('input-nueva-especialidad-descripcion').value = '';
     document.getElementById('modal-especialidad').classList.remove('seccion-oculta');
     document.getElementById('input-nueva-especialidad').focus();
 }
@@ -52,17 +54,18 @@ function cerrarModalEspecialidad() {
     document.getElementById('modal-especialidad').classList.add('seccion-oculta');
 }
 
-// Maneja el submit del formulario: envía POST para crear la especialidad
+// Maneja el submit del formulario: envía POST para crear la especialidad con descripción opcional
 async function manejarGuardarEspecialidad(e) {
     e.preventDefault();
-    const nombre = document.getElementById('input-nueva-especialidad').value.trim();
+    const nombre      = document.getElementById('input-nueva-especialidad').value.trim();
+    const descripcion = document.getElementById('input-nueva-especialidad-descripcion').value.trim();
     if (!nombre) { mostrarToast('El nombre no puede estar vacío', 'error'); return; }
 
     try {
         const res  = await fetch(API_BASE + '/api/admin/especialidades', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ nombre_especialidad: nombre })
+            body:    JSON.stringify({ nombre_especialidad: nombre, descripcion: descripcion || null })
         });
         const data = await res.json();
         if (data.success) {
@@ -77,10 +80,11 @@ async function manejarGuardarEspecialidad(e) {
     }
 }
 
-// Abre el modal de edición pre-cargando el id y nombre actuales
-function abrirModalEditarEspecialidad(id, nombre) {
-    document.getElementById('editar-especialidad-id').value     = id;
-    document.getElementById('editar-especialidad-nombre').value = nombre;
+// Abre el modal de edición pre-cargando el id, nombre y descripción actuales
+function abrirModalEditarEspecialidad(id, nombre, descripcion) {
+    document.getElementById('editar-especialidad-id').value          = id;
+    document.getElementById('editar-especialidad-nombre').value      = nombre;
+    document.getElementById('editar-especialidad-descripcion').value = descripcion || '';
     document.getElementById('modal-editar-especialidad').classList.remove('seccion-oculta');
     document.getElementById('editar-especialidad-nombre').focus();
 }
@@ -90,18 +94,19 @@ function cerrarModalEditarEspecialidad() {
     document.getElementById('modal-editar-especialidad').classList.add('seccion-oculta');
 }
 
-// Maneja el submit del formulario de edición: envía PUT con el nuevo nombre
+// Maneja el submit del formulario de edición: envía PUT con el nuevo nombre y descripción
 async function manejarEditarEspecialidad(e) {
     e.preventDefault();
-    const id     = document.getElementById('editar-especialidad-id').value;
-    const nombre = document.getElementById('editar-especialidad-nombre').value.trim();
+    const id          = document.getElementById('editar-especialidad-id').value;
+    const nombre      = document.getElementById('editar-especialidad-nombre').value.trim();
+    const descripcion = document.getElementById('editar-especialidad-descripcion').value.trim();
     if (!nombre) { mostrarToast('El nombre no puede estar vacío', 'error'); return; }
 
     try {
         const res  = await fetch(API_BASE + '/api/admin/especialidades/' + id, {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ nombre_especialidad: nombre })
+            body:    JSON.stringify({ nombre_especialidad: nombre, descripcion: descripcion || null })
         });
         const data = await res.json();
         if (data.success) {

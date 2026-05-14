@@ -357,6 +357,7 @@
                                 <th>CI</th>
                                 <th>Teléfono</th>
                                 <th>Correo</th>
+                                <th>Área</th>
                                 <th>Especialidades</th>
                                 <th>Acciones</th>
                             </tr>
@@ -427,6 +428,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Nombre</th>
+                                <th>Descripción</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -483,6 +485,7 @@
                                 <th>Usuario</th>
                                 <th>Rol</th>
                                 <th>Acción</th>
+                                <th>Estado</th>
                                 <th>Descripción</th>
                             </tr>
                         </thead>
@@ -521,6 +524,7 @@
                                 <th>Nombre</th>
                                 <th>Teléfono</th>
                                 <th>Correo</th>
+                                <th>Tipo</th>
                                 <th>Reservas</th>
                                 <th>Acciones</th>
                             </tr>
@@ -641,6 +645,11 @@
                     <label>Nombre de la especialidad</label>
                     <input type="text" id="editar-especialidad-nombre" placeholder="Ej: Masajes, Uñas gel..." required>
                 </div>
+                <!-- Descripción opcional: explica en qué consiste la especialidad -->
+                <div class="input-group">
+                    <label>Descripción (opcional)</label>
+                    <input type="text" id="editar-especialidad-descripcion" placeholder="Ej: Técnicas avanzadas de manicure...">
+                </div>
                 <div style="display:flex;gap:10px;margin-top:15px;">
                     <button type="submit" class="btn-registrarse" style="flex:1;">Guardar</button>
                     <button type="button" class="btn-outline-dark" onclick="cerrarModalEditarEspecialidad()" style="flex:1;">Cancelar</button>
@@ -660,6 +669,11 @@
                 <div class="input-group">
                     <label>Nombre de la especialidad</label>
                     <input type="text" id="input-nueva-especialidad" placeholder="Ej: Masajes, Uñas gel..." required>
+                </div>
+                <!-- Descripción opcional: explica en qué consiste la especialidad -->
+                <div class="input-group">
+                    <label>Descripción (opcional)</label>
+                    <input type="text" id="input-nueva-especialidad-descripcion" placeholder="Ej: Técnicas avanzadas de manicure...">
                 </div>
                 <div style="display:flex;gap:10px;margin-top:15px;">
                     <button type="submit" class="btn-registrarse" style="flex:1;">Crear</button>
@@ -698,6 +712,14 @@
                     <label>Contraseña inicial</label>
                     <input type="text" id="nuevo-cliente-contrasena" placeholder="Mínimo: 1 número, 1 mayúscula, 1 símbolo" required>
                 </div>
+                <!-- Tipo de cliente: Regular o VIP -->
+                <div class="input-group">
+                    <label>Tipo de Cliente</label>
+                    <select id="nuevo-cliente-tipo" style="width:100%;padding:10px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                        <option value="Regular">Regular</option>
+                        <option value="VIP">VIP</option>
+                    </select>
+                </div>
                 <p style="font-size:12px;color:#888;margin:-6px 0 12px;">Se enviará un correo al cliente con sus credenciales de acceso.</p>
                 <div style="display:flex;gap:10px;margin-top:10px;">
                     <button type="submit" class="btn-registrarse" style="flex:1;">Registrar Cliente</button>
@@ -726,6 +748,14 @@
                 <div class="input-group">
                     <label>Correo electrónico</label>
                     <input type="email" id="editar-cliente-email" required>
+                </div>
+                <!-- Tipo de cliente: Regular o VIP -->
+                <div class="input-group">
+                    <label>Tipo de Cliente</label>
+                    <select id="editar-cliente-tipo" style="width:100%;padding:10px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                        <option value="Regular">Regular</option>
+                        <option value="VIP">VIP</option>
+                    </select>
                 </div>
                 <div style="display:flex;gap:10px;margin-top:15px;">
                     <button type="submit" class="btn-registrarse" style="flex:1;">Guardar Cambios</button>
@@ -856,6 +886,11 @@
                     <label>Correo Electrónico</label>
                     <input type="email" id="admin-emp-email" required>
                 </div>
+                <!-- Campo área: zona o sección del salón donde trabaja el empleado -->
+                <div class="input-group">
+                    <label>Área de Trabajo</label>
+                    <input type="text" id="admin-emp-area" placeholder="Ej: Uñas, Cabello, Recepción...">
+                </div>
                 <!-- Especialidades: hasta 2. Se agregan dinámicamente como chips -->
                 <div class="input-group">
                     <label>Especialidades (1-2)</label>
@@ -941,6 +976,11 @@
                         <label>Correo Electrónico</label>
                         <input type="email" id="edit-emp-email">
                     </div>
+                </div>
+                <!-- Campo área: zona o sección del salón donde trabaja el empleado -->
+                <div class="input-group">
+                    <label>Área de Trabajo</label>
+                    <input type="text" id="edit-emp-area" placeholder="Ej: Uñas, Cabello, Recepción...">
                 </div>
                 <button type="submit" class="btn-registrarse w-100 mt-15">Guardar Cambios</button>
             </form>

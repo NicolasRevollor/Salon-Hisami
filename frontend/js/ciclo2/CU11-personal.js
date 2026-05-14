@@ -29,6 +29,7 @@ async function cargarEmpleadosAdmin() {
                 <td>${emp.ci}</td>
                 <td>${emp.telefono || 'N/A'}</td>
                 <td>${emp.email}</td>
+                <td>${emp.area || '—'}</td>
                 <td>${emp.especialidades || '—'}</td>
                 <td>
                     <button class="btn-table"
@@ -135,6 +136,7 @@ async function manejarGuardarEmpleado(e) {
     const telefono  = document.getElementById('admin-emp-tel').value.trim();
     const nombre    = document.getElementById('admin-emp-nombre').value.trim();
     const email     = document.getElementById('admin-emp-email').value.trim();
+    const area      = document.getElementById('admin-emp-area').value.trim();
     const contrasena = document.getElementById('admin-emp-pass').value;
 
     if (!ci)       { mostrarToast('El CI es obligatorio', 'error'); return; }
@@ -151,7 +153,7 @@ async function manejarGuardarEmpleado(e) {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({
-                ci, nombre, telefono, email, contrasena,
+                ci, nombre, telefono, email, area, contrasena,
                 especialidades: espCrearSeleccionadas.map(e => e.id)
             })
         });
@@ -178,6 +180,8 @@ async function abrirModalEditarEmpleado(ci) {
     document.getElementById('edit-emp-nombre').value      = emp.nombre;
     document.getElementById('edit-emp-tel').value         = emp.telefono || '';
     document.getElementById('edit-emp-email').value       = emp.email;
+    // Pre-cargar el área de trabajo actual del empleado
+    document.getElementById('edit-emp-area').value        = emp.area || '';
 
     document.getElementById('modal-editar-empleado').classList.remove('seccion-oculta');
     await cargarEspecialidadesEmpleado(ci); // cargar especialidades actuales del empleado
@@ -196,6 +200,7 @@ async function manejarEditarEmpleado(e) {
     const nombre = document.getElementById('edit-emp-nombre').value.trim();
     const tel    = document.getElementById('edit-emp-tel').value.trim();
     const email  = document.getElementById('edit-emp-email').value.trim();
+    const area   = document.getElementById('edit-emp-area').value.trim();
 
     if (!nombre) { mostrarToast('El nombre es obligatorio', 'error'); return; }
     if (!email)  { mostrarToast('El correo es obligatorio', 'error'); return; }
@@ -204,7 +209,7 @@ async function manejarEditarEmpleado(e) {
         const res  = await fetch(`${API_BASE}/api/admin/empleados/${ci}`, {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ nombre, telefono: tel, email })
+            body:    JSON.stringify({ nombre, telefono: tel, email, area })
         });
         const data = await res.json();
         if (data.success) {

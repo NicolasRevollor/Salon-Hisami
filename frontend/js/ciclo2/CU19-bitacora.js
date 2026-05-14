@@ -23,24 +23,26 @@ const ACCION_ESTILOS = {
 async function cargarBitacoraAdmin() {
     const tbody = document.getElementById('tabla-admin-bitacora-body');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Cargando...</td></tr>';
 
     try {
         const res  = await fetch(API_BASE + '/api/admin/bitacora');
         const data = await res.json();
 
         if (!data.success) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e74c3c;padding:20px;">Error al cargar la bitácora.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e74c3c;padding:20px;">Error al cargar la bitácora.</td></tr>';
             return;
         }
         if (!data.eventos.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Sin eventos registrados aún.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Sin eventos registrados aún.</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.eventos.map(ev => {
             // Usar el estilo del mapa o un fallback genérico si la acción no está mapeada
             const estilo = ACCION_ESTILOS[ev.accion] || { texto: ev.accion, color: '#333' };
+            // Color del badge de estado: verde si Exitoso, rojo si Fallido, gris si otro
+            const estadoColor = ev.estado === 'Exitoso' ? '#27ae60' : ev.estado === 'Fallido' ? '#e74c3c' : '#7f8c8d';
             return `
                 <tr>
                     <td>${ev.fecha_hora || '—'}</td>
@@ -53,10 +55,17 @@ async function cargarBitacoraAdmin() {
                             ${estilo.texto}
                         </span>
                     </td>
+                    <td>
+                        <span style="display:inline-block;padding:3px 10px;border-radius:12px;
+                                     background:${estadoColor}22;color:${estadoColor};
+                                     font-size:12px;font-weight:600;">
+                            ${ev.estado || '—'}
+                        </span>
+                    </td>
                     <td style="font-size:13px;color:#555;">${ev.descripcion || '—'}</td>
                 </tr>`;
         }).join('');
     } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e74c3c;padding:20px;">Error de conexión al cargar la bitácora.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e74c3c;padding:20px;">Error de conexión al cargar la bitácora.</td></tr>';
     }
 }
