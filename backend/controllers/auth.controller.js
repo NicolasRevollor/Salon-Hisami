@@ -22,11 +22,8 @@
 // =============================================================================
 
 const pool   = require('../config/db');
-const bcrypt = require('bcryptjs');
 const { transporter, enviarCorreoCredenciales } = require('../config/mailer');
 const { registrarEvento } = require('./bitacora.controller');
-
-const SALT_ROUNDS = 10; // factor de costo de bcrypt (más alto = más seguro pero más lento)
 
 // Estado en memoria (se pierde al reiniciar el servidor)
 const intentosLogin    = new Map(); // email → { intentos, bloqueadoHasta }
@@ -84,8 +81,10 @@ async function initSistema() {
         const CUS_PERSONAL  = [1, 2, 3, 16];
         const CUS_ADMIN     = [1, 2, 3, 7, 8, 9, 10, 11, 12, 16, 18, 19];
 
+        // JOIN con roles para obtener el nombre del rol (la columna rol fue reemplazada por id_rol)
         const usuarios = await pool.query(
-            `SELECT ci, rol FROM usuarios u
+            `SELECT u.ci, r.nombre AS rol FROM usuarios u
+             JOIN roles r ON u.id_rol = r.id_rol
              WHERE NOT EXISTS (
                  SELECT 1 FROM privilegios_usuario pu WHERE pu.ci_usuario = u.ci
              )`
@@ -136,42 +135,27 @@ async function login(req, res) {
     }
 
     try {
-        // Buscar por correo o por CI según lo que ingresó el usuario
+        // Buscar por correo o por CI — JOIN con roles para obtener el nombre del rol
         const result = await pool.query(
-            'SELECT ci, nombre, rol, email, contrasena FROM usuarios WHERE email = $1 OR ci::text = $1',
+            `SELECT u.ci, u.nombre, r.nombre AS rol, u.email, u.contrasena
+             FROM usuarios u
+             JOIN roles r ON u.id_rol = r.id_rol
+             WHERE u.email = $1 OR u.ci::text = $1`,
             [identificador]
         );
 
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            const hashGuardado = user.contrasena;
-            let passwordCorrecta = false;
 
-            if (hashGuardado.startsWith('$2b$') || hashGuardado.startsWith('$2a$')) {
-                // Contraseña ya hasheada con bcrypt → usar compare
-                passwordCorrecta = await bcrypt.compare(contrasena, hashGuardado);
-            } else {
-                // Contraseña antigua en texto plano → comparar directo
-                passwordCorrecta = (contrasena === hashGuardado);
-                if (passwordCorrecta) {
-                    // Migración automática: hashear y guardar en BD
-                    const nuevoHash = await bcrypt.hash(contrasena, SALT_ROUNDS);
-                    await pool.query('UPDATE usuarios SET contrasena = $1 WHERE ci = $2', [nuevoHash, user.ci]);
-                    console.log(`🔐 Contraseña de ${user.email} migrada a bcrypt automáticamente`);
-                }
-            }
-
-            if (passwordCorrecta) {
+            // Comparar contraseña directo en texto plano
+            if (contrasena === user.contrasena) {
                 intentosLogin.delete(identificador);
                 historialSesiones.unshift({
                     nombre: user.nombre, email: user.email,
                     rol: user.rol, fecha: new Date().toLocaleString('es-BO')
                 });
                 if (historialSesiones.length > 50) historialSesiones.pop();
-                // Registrar en bitácora (falla silenciosamente si la tabla no existe aún)
-                console.log("ANTES DE BITACORA:", user.ci, user.nombre);
-                await registrarEvento(user.ci, user.nombre, user.rol, "LOGIN", "Inicio de sesión exitoso");
-                // No enviar el hash de contraseña al frontend
+                await registrarEvento(user.ci, user.nombre, user.rol, 'LOGIN', 'Inicio de sesión exitoso');
                 return res.json({ success: true, user: { ci: user.ci, nombre: user.nombre, rol: user.rol, email: user.email } });
             }
         }
@@ -220,13 +204,11 @@ async function registro(req, res) {
     try {
         await client.query('BEGIN');
 
-        // Hashear la contraseña ANTES de guardar (nunca guardar texto plano)
-        const hash = await bcrypt.hash(contrasena, SALT_ROUNDS);
-
+        // id_rol = 3 corresponde a 'Cliente' en la tabla roles
         await client.query(
-            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, rol)
-             VALUES ($1, $2, $3, $4, $5, 'Cliente')`,
-            [ci, nombre, telefono, email, hash]
+            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, id_rol)
+             VALUES ($1, $2, $3, $4, $5, 3)`,
+            [ci, nombre, telefono, email, contrasena]
         );
         await client.query(`INSERT INTO clientes (ci_usuario) VALUES ($1)`, [ci]);
 
@@ -325,11 +307,9 @@ async function restablecerPassword(req, res) {
             return res.status(400).json({ success: false, message: 'El código ha expirado. Solicita uno nuevo.' });
         }
 
-        // Hashear la nueva contraseña antes de guardarla
-        const hash = await bcrypt.hash(nuevaPassword, SALT_ROUNDS);
         await pool.query(
             'UPDATE usuarios SET contrasena = $1, reset_token = NULL, reset_token_expira = NULL WHERE email = $2',
-            [hash, email]
+            [nuevaPassword, email]
         );
         res.json({ success: true, message: 'Contraseña actualizada. Ya puedes iniciar sesión.' });
     } catch (err) {
@@ -354,22 +334,13 @@ async function cambiarPassword(req, res) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
         }
 
-        const hashGuardado = result.rows[0].contrasena;
-        let actualCorrecta = false;
+        const contrasenaGuardada = result.rows[0].contrasena;
 
-        // Soportar contraseñas antiguas (texto plano) y nuevas (bcrypt)
-        if (hashGuardado.startsWith('$2b$') || hashGuardado.startsWith('$2a$')) {
-            actualCorrecta = await bcrypt.compare(passwordActual, hashGuardado);
-        } else {
-            actualCorrecta = (passwordActual === hashGuardado);
-        }
-
-        if (!actualCorrecta) {
+        if (passwordActual !== contrasenaGuardada) {
             return res.status(401).json({ success: false, message: 'La contraseña actual es incorrecta.' });
         }
 
-        const nuevoHash = await bcrypt.hash(passwordNueva, SALT_ROUNDS);
-        await pool.query('UPDATE usuarios SET contrasena = $1 WHERE email = $2', [nuevoHash, email]);
+        await pool.query('UPDATE usuarios SET contrasena = $1 WHERE email = $2', [passwordNueva, email]);
         res.json({ success: true, message: '¡Contraseña actualizada con éxito!' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Error interno del servidor.' });

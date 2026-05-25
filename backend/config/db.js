@@ -24,6 +24,8 @@
 // =============================================================================
 
 const { Pool } = require('pg');   // pg = librería oficial de PostgreSQL para Node.js
+// DOTENV_QUIET=true suprime el mensaje de dotenv v17 en la terminal
+process.env.DOTENV_QUIET = 'true';
 require('dotenv').config();        // carga las variables del archivo .env en process.env
 
 // Crear el pool con las credenciales del .env

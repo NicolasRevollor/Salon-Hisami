@@ -335,6 +335,26 @@ function navegarCU(nombreCU) {
     }
     if (!usuarioActual) { mostrarToast('Debes iniciar sesión', 'error'); return; }
 
+    // ── CUs del Ciclo 3: navegan a la segunda pestaña del Centro de Gestión ──
+    // Cada condición detecta palabras clave del nombre del CU y abre el tab correcto
+    const irCiclo3 = (subtab) => {
+        mostrarSeccion('centro-gestion');
+        cambiarGrupoAdmin('ciclo3');
+        cambiarTabCiclo3(subtab);
+    };
+    if (n.includes('preferencia') || (n.includes('seguimiento') && n.includes('estilo')))
+        { irCiclo3('preferencias'); return; }
+    if (n.includes('kit') && (n.includes('personal') || n.includes('esteticista')))
+        { irCiclo3('kit'); return; }
+    if ((n.includes('alerta') && n.includes('stock')) || n.includes('monitorear'))
+        { irCiclo3('alertas'); return; }
+    if (n.includes('recordatorio'))
+        { irCiclo3('recordatorios'); return; }
+    if (n.includes('whatsapp'))
+        { irCiclo3('whatsapp'); return; }
+    if ((n.includes('receta') || n.includes('consumo')) && !n.includes('servicio'))
+        { irCiclo3('recetas'); return; }
+
     // ── CUs del Centro de Gestión: se resuelve el tab y se respetan privilegios ──
     // privilegios solo si es admin (guard adicional en mostrarCentroGestion)
     const tabGestion = n.includes('servicio')     ? 'servicios'
@@ -412,6 +432,11 @@ const TABS_ADMIN = [
     'paquetes','especialidades','citas','bitacora','privilegios','comisiones'
 ];
 
+// Tabs del grupo Ciclo 3 (segunda pestaña del Centro de Gestión).
+// Cada string aquí corresponde a un id="tab-ciclo3-{nombre}" en el HTML
+// y a una vista id="vista-ciclo3-{nombre}" también en el HTML.
+const TABS_CICLO3 = ['preferencias','kit','alertas','recordatorios','whatsapp','recetas'];
+
 // Mapeo: palabra clave en el nombre del CU → id de la tab del Centro de Gestión.
 // 'privilegios' no está: es solo para Administrador y se maneja aparte.
 const CU_NOMBRE_A_TAB = [
@@ -426,6 +451,63 @@ const CU_NOMBRE_A_TAB = [
     { clave: 'bit',          tab: 'bitacora'       },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// cambiarGrupoAdmin
+// Alterna entre el grupo "Gestión" (Ciclos 1 y 2) y el grupo "Ciclo 3".
+// Se llama cuando el admin hace clic en los botones [Gestión] o [Ciclo 3]
+// que están encima de las pestañas del Centro de Gestión.
+//
+// grupo → 'gestion' o 'ciclo3'
+// ─────────────────────────────────────────────────────────────────────────────
+function cambiarGrupoAdmin(grupo) {
+    // Recorrer ambos grupos y mostrar/ocultar su barra de tabs + marcar el botón activo
+    ['gestion', 'ciclo3'].forEach(g => {
+        // Si g es el grupo que queremos mostrar (g === grupo) → quitar seccion-oculta
+        // Si es el otro grupo → agregar seccion-oculta (para ocultarlo)
+        document.getElementById('tabs-grupo-' + g)?.classList.toggle('seccion-oculta', g !== grupo);
+
+        // Al botón del grupo activo agregar clase 'active', al otro quitarla
+        document.getElementById('tab-grupo-' + g)?.classList.toggle('active', g === grupo);
+    });
+
+    // Ocultar TODAS las vistas de AMBOS grupos (limpiar pantalla antes de mostrar la nueva)
+    TABS_ADMIN.forEach(t  => document.getElementById('vista-admin-'  + t)?.classList.add('seccion-oculta'));
+    TABS_CICLO3.forEach(t => document.getElementById('vista-ciclo3-' + t)?.classList.add('seccion-oculta'));
+
+    // Mostrar el primer tab del grupo seleccionado
+    if (grupo === 'gestion') {
+        cambiarTabAdmin('servicios');    // primera pestaña del grupo Gestión
+    } else {
+        cambiarTabCiclo3('preferencias'); // primera pestaña del grupo Ciclo 3
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cambiarTabCiclo3
+// Cambia la pestaña activa DENTRO del grupo Ciclo 3.
+// Funciona igual que cambiarTabAdmin pero con los ids "ciclo3-" en vez de "admin-".
+//
+// tab → nombre del tab, ej: 'preferencias', 'alertas', 'recetas', etc.
+// ─────────────────────────────────────────────────────────────────────────────
+function cambiarTabCiclo3(tab) {
+    // Ocultar todas las vistas del grupo Ciclo 3 y desmarcar todos los tabs
+    TABS_CICLO3.forEach(t => {
+        document.getElementById('vista-ciclo3-' + t)?.classList.add('seccion-oculta');
+        document.getElementById('tab-ciclo3-' + t)?.classList.remove('active');
+    });
+
+    // Mostrar la vista del tab seleccionado y marcar su botón como activo
+    document.getElementById('vista-ciclo3-' + tab)?.classList.remove('seccion-oculta');
+    document.getElementById('tab-ciclo3-' + tab)?.classList.add('active');
+
+    // Cargar datos automáticamente solo para los tabs que tienen datos que mostrar de inmediato.
+    // Los otros tres ('preferencias', 'kit', 'recordatorios') necesitan que el admin
+    // escriba algo primero (un CI o una fecha), así que no se cargan automáticamente.
+    if (tab === 'alertas')  cargarAlertasStock();  // CU15: cargar tabla de stock bajo
+    if (tab === 'recetas')  cargarRecetasAdmin();  // CU23: cargar tabla de servicios con receta
+    if (tab === 'whatsapp') inicializarWhatsApp(); // CU21: cargar clientes y plantillas
+}
+
 // Abre el Centro de Gestión mostrando solo los tabs a los que el usuario tiene acceso.
 // Admin ve todo; otros roles solo ven los tabs de sus CUs habilitados.
 async function mostrarCentroGestion(tabInicial) {
@@ -437,7 +519,9 @@ async function mostrarCentroGestion(tabInicial) {
             const btn = document.getElementById('tab-admin-' + t);
             if (btn) btn.style.display = '';
         });
-        cambiarTabAdmin(tabInicial || 'servicios');
+        // Mostrar el grupo Gestión por defecto y su primer tab
+        cambiarGrupoAdmin('gestion');
+        if (tabInicial) cambiarTabAdmin(tabInicial);
         return;
     }
 
@@ -485,15 +569,15 @@ function cambiarTabAdmin(tab) {
     document.getElementById('vista-admin-' + tab)?.classList.remove('seccion-oculta');
     document.getElementById('tab-admin-' + tab)?.classList.add('active');
 
-    if (tab === 'servicios')     cargarServiciosAdmin();
-    if (tab === 'empleados')     cargarEmpleadosAdmin();
-    if (tab === 'clientes')      cargarClientesAdmin();
-    if (tab === 'categorias')    cargarCategoriasAdmin();
-    if (tab === 'paquetes')      cargarPaquetesAdmin();
+    if (tab === 'servicios')      cargarServiciosAdmin();
+    if (tab === 'empleados')      cargarEmpleadosAdmin();
+    if (tab === 'clientes')       cargarClientesAdmin();
+    if (tab === 'categorias')     cargarCategoriasAdmin();
+    if (tab === 'paquetes')       cargarPaquetesAdmin();
     if (tab === 'especialidades') cargarEspecialidadesAdmin();
     if (tab === 'citas')          cargarCitasAdmin();
-    if (tab === 'bitacora')      cargarBitacoraAdmin();
-    if (tab === 'comisiones')    cargarComisionesAdmin();
+    if (tab === 'bitacora')       cargarBitacoraAdmin();
+    if (tab === 'comisiones')     cargarComisionesAdmin();
     // 'privilegios' no tiene carga automática — el admin busca por CI manualmente
 }
 

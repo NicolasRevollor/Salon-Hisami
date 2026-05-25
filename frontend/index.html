@@ -308,7 +308,14 @@
                 <button class="btn-configuracion" onclick="abrirModalConfig()">Mi Perfil</button>
             </div>
             
-            <div class="tabs-cliente" style="flex-wrap:wrap;">
+            <!-- Selector de grupo principal: Gestión (Ciclos 1-2) vs Ciclo 3 -->
+            <div class="tabs-login" style="margin-bottom:10px;">
+                <button class="tab-btn active" id="tab-grupo-gestion" onclick="cambiarGrupoAdmin('gestion')">1</button>
+                <button class="tab-btn"        id="tab-grupo-ciclo3"  onclick="cambiarGrupoAdmin('ciclo3')">2</button>
+            </div>
+
+            <!-- Tabs del grupo Gestión (Ciclos 1 y 2) -->
+            <div id="tabs-grupo-gestion" class="tabs-cliente" style="flex-wrap:wrap;">
                 <button class="tab-cli active" id="tab-admin-servicios"      onclick="cambiarTabAdmin('servicios')">Servicios</button>
                 <button class="tab-cli" id="tab-admin-empleados"             onclick="cambiarTabAdmin('empleados')">Personal</button>
                 <button class="tab-cli" id="tab-admin-clientes"              onclick="cambiarTabAdmin('clientes')">Clientes</button>
@@ -319,6 +326,16 @@
                 <button class="tab-cli" id="tab-admin-bitacora"              onclick="cambiarTabAdmin('bitacora')">Bitácora</button>
                 <button class="tab-cli" id="tab-admin-privilegios"           onclick="cambiarTabAdmin('privilegios')">Privilegios</button>
                 <button class="tab-cli" id="tab-admin-comisiones"            onclick="cambiarTabAdmin('comisiones')">Comisiones</button>
+            </div>
+
+            <!-- Tabs del grupo Ciclo 3 -->
+            <div id="tabs-grupo-ciclo3" class="tabs-cliente seccion-oculta" style="flex-wrap:wrap;">
+                <button class="tab-cli active" id="tab-ciclo3-preferencias"  onclick="cambiarTabCiclo3('preferencias')">Preferencias</button>
+                <button class="tab-cli" id="tab-ciclo3-kit"                  onclick="cambiarTabCiclo3('kit')">Kit Personal</button>
+                <button class="tab-cli" id="tab-ciclo3-alertas"              onclick="cambiarTabCiclo3('alertas')">Alertas Stock</button>
+                <button class="tab-cli" id="tab-ciclo3-recordatorios"        onclick="cambiarTabCiclo3('recordatorios')">Recordatorios</button>
+                <button class="tab-cli" id="tab-ciclo3-whatsapp"             onclick="cambiarTabCiclo3('whatsapp')">WhatsApp</button>
+                <button class="tab-cli" id="tab-ciclo3-recetas"              onclick="cambiarTabCiclo3('recetas')">Recetas</button>
             </div>
 
             <div id="vista-admin-servicios">
@@ -552,6 +569,234 @@
                             </tr>
                         </thead>
                         <tbody id="tabla-admin-comisiones-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 CICLO 3 — Vistas del grupo Ciclo 3
+                 Convención de IDs:
+                   id="vista-ciclo3-{nombre}" → el div que se muestra/oculta
+                   id="tab-ciclo3-{nombre}"   → el botón de la pestaña (arriba)
+                 Todas empiezan con class="seccion-oculta" para estar escondidas.
+                 cambiarTabCiclo3(nombre) las muestra de una en una.
+            ══════════════════════════════════════════════════════════════ -->
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 CU6 — Preferencias y Seguimiento de Estilo
+                 El admin escribe el CI del cliente → buscarPreferenciasCliente()
+                 trae los datos y dibuja el formulario dentro de #pref-resultado.
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="vista-ciclo3-preferencias" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Preferencias y Seguimiento de Estilo</h3>
+                </div>
+                <div class="dash-card" style="padding:20px;">
+                    <p style="color:#666;font-size:14px;margin-bottom:15px;">
+                        Busca un cliente por su CI para ver y actualizar sus preferencias de estilo personal.
+                    </p>
+                    <!-- Barra de búsqueda por CI -->
+                    <div style="display:flex;gap:10px;margin-bottom:20px;">
+                        <input type="text" id="pref-buscar-ci" placeholder="CI del cliente"
+                               style="flex:1;padding:10px;border:1px solid #ccc;border-radius:6px;">
+                        <!-- onclick llama a buscarPreferenciasCliente() en CU6-preferencias.js -->
+                        <button class="btn-nueva-reserva" onclick="buscarPreferenciasCliente()">Buscar</button>
+                    </div>
+                    <!-- Aquí CU6-preferencias.js dibuja el formulario de preferencias -->
+                    <div id="pref-resultado"></div>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 CU14 — Kit Personal del Esteticista
+                 El admin escribe el CI de la esteticista → buscarKitEmpleado()
+                 trae el kit actual y dibuja la tabla editable en #kit-resultado.
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="vista-ciclo3-kit" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Kit Personal del Esteticista</h3>
+                </div>
+                <div class="dash-card" style="padding:20px;">
+                    <p style="color:#666;font-size:14px;margin-bottom:15px;">
+                        Busca una esteticista por CI para asignar o editar los insumos de su kit personal.
+                    </p>
+                    <!-- Barra de búsqueda por CI -->
+                    <div style="display:flex;gap:10px;margin-bottom:20px;">
+                        <input type="text" id="kit-buscar-ci" placeholder="CI del empleado"
+                               style="flex:1;padding:10px;border:1px solid #ccc;border-radius:6px;">
+                        <!-- onclick llama a buscarKitEmpleado() en CU14-kit-personal.js -->
+                        <button class="btn-nueva-reserva" onclick="buscarKitEmpleado()">Buscar</button>
+                    </div>
+                    <!-- Aquí CU14-kit-personal.js dibuja la tabla del kit + selector para agregar -->
+                    <div id="kit-resultado"></div>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 CU15 — Monitorear Alertas de Stock
+                 Se carga automáticamente al entrar a la pestaña.
+                 cargarAlertasStock() (CU15-alertas-stock.js) llena #tabla-alertas-body.
+                 #alertas-resumen muestra el resumen (ej: "3 productos con stock bajo").
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="vista-ciclo3-alertas" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Monitorear Alertas de Stock</h3>
+                    <!-- Botón para recargar manualmente si el admin quiere ver cambios nuevos -->
+                    <button class="btn-outline-dark" onclick="cargarAlertasStock()">Refrescar</button>
+                </div>
+                <div class="dash-card" style="padding:20px;">
+                    <!-- Resumen de cuántos productos están en alerta (llenado por JS) -->
+                    <div id="alertas-resumen" style="margin-bottom:15px;font-size:14px;"></div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Stock Actual</th>  <!-- cantidad que hay ahora -->
+                                    <th>Unidad</th>        <!-- ml, gr, unidades... -->
+                                    <th>Mínimo</th>        <!-- a partir de qué cantidad se activa la alerta -->
+                                    <th>Estado</th>        <!-- badge: "Sin stock" o "Stock bajo" -->
+                                    <th>Ajustar Mínimo</th> <!-- input + botón para cambiar el mínimo -->
+                                </tr>
+                            </thead>
+                            <!-- Las filas las genera cargarAlertasStock() en CU15-alertas-stock.js -->
+                            <tbody id="tabla-alertas-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 CU20 — Recordatorios de Cita por Gmail
+                 El admin elige una fecha → buscarCitasParaRecordatorio() llena la tabla.
+                 Luego selecciona cuáles citas incluir y presiona "Enviar Recordatorios"
+                 → enviarRecordatoriosSeleccionados() manda los correos.
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="vista-ciclo3-recordatorios" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Recordatorios de Cita por Gmail</h3>
+                </div>
+                <div class="dash-card" style="padding:20px;">
+                    <p style="color:#666;font-size:14px;margin-bottom:15px;">
+                        Selecciona una fecha para ver las citas Pendientes o Confirmadas y enviar recordatorios por correo.
+                    </p>
+                    <!-- Controles: selector de fecha + botón buscar + botón enviar -->
+                    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+                        <!-- Input de fecha tipo date → formato YYYY-MM-DD -->
+                        <input type="date" id="recor-fecha"
+                               style="padding:10px;border:1px solid #ccc;border-radius:6px;">
+                        <!-- Buscar citas del día seleccionado -->
+                        <button class="btn-nueva-reserva" onclick="buscarCitasParaRecordatorio()">Buscar Citas</button>
+                        <!-- Aparece solo cuando hay citas en la tabla (display:none por defecto) -->
+                        <button class="btn-registrarse" id="btn-enviar-recordatorios"
+                                style="display:none;" onclick="enviarRecordatoriosSeleccionados()">
+                            Enviar Recordatorios
+                        </button>
+                    </div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">✓</th> <!-- checkbox para seleccionar -->
+                                    <th>Cliente</th>
+                                    <th>Hora</th>
+                                    <th>Servicios</th>
+                                    <th>Correo</th> <!-- si no tiene correo, el checkbox se deshabilita -->
+                                </tr>
+                            </thead>
+                            <!-- Las filas las genera buscarCitasParaRecordatorio() en CU20-recordatorios.js -->
+                            <!-- dataset.citas guarda el array de citas para enviarlo al presionar el botón -->
+                            <tbody id="tabla-recordatorios-body">
+                                <!-- Mensaje inicial antes de que el admin busque -->
+                                <tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px;">
+                                    Selecciona una fecha y presiona Buscar.
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 CU21 — WhatsApp Empresarial
+                 Al entrar a la pestaña, inicializarWhatsApp() carga clientes y plantillas.
+                 El admin elige cliente (rellena el número) o escribe el número manualmente,
+                 escribe/elige el mensaje y presiona "Abrir en WhatsApp" → se abre
+                 WhatsApp Web o app con el número y mensaje ya listos.
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="vista-ciclo3-whatsapp" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Integrar WhatsApp Empresarial</h3>
+                </div>
+                <div class="dash-card" style="padding:20px;max-width:600px;">
+                    <p style="color:#666;font-size:14px;margin-bottom:20px;">
+                        Selecciona un cliente o ingresa un número para enviar un mensaje de WhatsApp.
+                    </p>
+                    <!-- Select de clientes: al elegir uno, se rellena automáticamente el campo de número -->
+                    <div class="input-group">
+                        <label>Seleccionar cliente (opcional)</label>
+                        <!-- onchange llama a seleccionarClienteWA() para copiar el teléfono al input -->
+                        <select id="wa-cliente-select" onchange="seleccionarClienteWA()"
+                            style="width:100%;padding:10px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                            <option value="">-- Seleccionar cliente --</option>
+                            <!-- Las opciones se cargan dinámicamente por cargarClientesWhatsApp() -->
+                        </select>
+                    </div>
+                    <!-- Campo de número: se puede escribir manualmente o se rellena al elegir cliente -->
+                    <div class="input-group">
+                        <label>Número de teléfono (Bolivia)</label>
+                        <!-- Pre-rellenado con 77689983 (número de prueba del admin) -->
+                        <input type="text" id="wa-numero" placeholder="Ej: 77689983"
+                               style="width:100%;">
+                    </div>
+                    <!-- Botones de plantillas predefinidas (se generan por JS en inicializarWhatsApp) -->
+                    <div class="input-group">
+                        <label>Plantillas rápidas</label>
+                        <!-- inicializarWhatsApp() dibuja los botones de plantilla aquí -->
+                        <div id="wa-plantillas" style="margin-top:6px;"></div>
+                    </div>
+                    <!-- Área del mensaje: se puede escribir libre o usar una plantilla -->
+                    <div class="input-group">
+                        <label>Mensaje</label>
+                        <textarea id="wa-mensaje" rows="4"
+                            style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-family:inherit;resize:vertical;"
+                            placeholder="Escribe el mensaje aquí o usa una plantilla..."></textarea>
+                    </div>
+                    <!-- Botón principal: llama a abrirWhatsApp() en CU21-whatsapp.js -->
+                    <button class="btn-registrarse" style="width:100%;margin-top:10px;"
+                            onclick="abrirWhatsApp()">
+                        Abrir en WhatsApp
+                    </button>
+                    <!-- Aquí aparece el enlace wa.me generado después de presionar el botón -->
+                    <div id="wa-link-resultado"></div>
+                </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 CU23 — Gestionar Consumo por Servicio (Receta/Fórmula)
+                 Se carga automáticamente al entrar a la pestaña.
+                 cargarRecetasAdmin() llena #tabla-recetas-body con los servicios.
+                 Cada fila tiene:
+                   "Editar Receta"     → abrirModalReceta() del ciclo 2 (modal ya en el HTML)
+                   "Registrar Consumo" → confirmarDescontarConsumo() → descuenta del inventario
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="vista-ciclo3-recetas" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Gestionar Consumo por Servicio</h3>
+                    <button class="btn-outline-dark" onclick="cargarRecetasAdmin()">Refrescar</button>
+                </div>
+                <div class="admin-table-container dash-card">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Servicio</th>
+                                <th>Insumos en Receta</th>  <!-- cuántos insumos tiene la receta -->
+                                <th>Receta</th>              <!-- botón para ver/editar la receta -->
+                                <th>Registrar Consumo</th>   <!-- botón para descontar del stock -->
+                            </tr>
+                        </thead>
+                        <!-- Las filas las genera cargarRecetasAdmin() en CU23-recetas.js -->
+                        <tbody id="tabla-recetas-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -936,7 +1181,7 @@
     <div id="modal-receta" class="modal-overlay seccion-oculta">
         <div class="caja-translucida modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="font-size: 22px; color: var(--texto-oscuro);">CU24 - Receta: <span id="receta-nombre-servicio" style="color: var(--color-primario);"></span></h3>
+                <h3 style="font-size: 22px; color: var(--texto-oscuro);">Receta: <span id="receta-nombre-servicio" style="color: var(--color-primario);"></span></h3>
                 <button onclick="cerrarModalReceta()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
             </div>
             <input type="hidden" id="receta-id-servicio">
@@ -1174,10 +1419,17 @@
          10. ciclo2/CU12-especialidades → CU12: gestión de especialidades
          11. ciclo2/CU19-bitacora       → CU19: bitácora del sistema
          12. ciclo2/CU3-reservar        → CU3: modal de reserva de cita
+         ── CICLO 3 (js/ciclo3/) ──────────────────────────────────────────────
+         13. ciclo3/CU6-preferencias    → CU6: preferencias de estilo del cliente
+         14. ciclo3/CU14-kit-personal   → CU14: kit personal del esteticista
+         15. ciclo3/CU15-alertas-stock  → CU15: alertas de stock bajo mínimo
+         16. ciclo3/CU20-recordatorios  → CU20: recordatorios de cita por Gmail
+         17. ciclo3/CU21-whatsapp       → CU21: mensajes WhatsApp empresarial
+         18. ciclo3/CU23-recetas        → CU23: consumo por servicio (receta/fórmula)
          ── Paneles y catálogo ─────────────────────────────────────────────────
-         13. catalogo                   → catálogo público (landing)
-         14. panel-cliente              → panel cliente: mis citas, favoritos
-         15. panel-personal             → panel personal: agenda, comisiones
+         19. catalogo                   → catálogo público (landing)
+         20. panel-cliente              → panel cliente: mis citas, favoritos
+         21. panel-personal             → panel personal: agenda, comisiones
     ══════════════════════════════════════════════════════════════════════ -->
     <script src="js/main.js"></script>
     <!-- Ciclo 1 -->
@@ -1194,6 +1446,14 @@
     <script src="js/ciclo2/CU-citas-admin.js"></script>
     <script src="js/ciclo2/CU19-bitacora.js"></script>
     <script src="js/ciclo2/CU3-reservar.js"></script>
+    <script src="js/ciclo2/CU-inventario.js"></script>
+    <!-- Ciclo 3 -->
+    <script src="js/ciclo3/CU6-preferencias.js"></script>
+    <script src="js/ciclo3/CU14-kit-personal.js"></script>
+    <script src="js/ciclo3/CU15-alertas-stock.js"></script>
+    <script src="js/ciclo3/CU20-recordatorios.js"></script>
+    <script src="js/ciclo3/CU21-whatsapp.js"></script>
+    <script src="js/ciclo3/CU23-recetas.js"></script>
     <!-- Paneles y catálogo -->
     <script src="js/catalogo.js"></script>
     <script src="js/panel-cliente.js"></script>

@@ -298,8 +298,11 @@ async function crearReserva(req, res) {
         await client.query('COMMIT');
         const n = ciEstArr.length;
 
-        // Registrar en bitácora
-        const clInfoRes = await pool.query('SELECT nombre, rol FROM usuarios WHERE ci = $1', [ci_cliente]);
+        // Registrar en bitácora — JOIN roles porque la columna rol fue reemplazada por id_rol
+        const clInfoRes = await pool.query(
+            'SELECT u.nombre, r.nombre AS rol FROM usuarios u JOIN roles r ON u.id_rol = r.id_rol WHERE u.ci = $1',
+            [ci_cliente]
+        );
         const clInfo = clInfoRes.rows[0];
         registrarEvento(
             ci_cliente, clInfo?.nombre, clInfo?.rol,

@@ -42,6 +42,7 @@ const reservasRoutes   = require('./routes/reservas.routes');
 const adminRoutes      = require('./routes/admin.routes');
 const inventarioRoutes = require('./routes/inventario.routes');
 const bitacoraRoutes   = require('./routes/bitacora.routes');
+const ciclo3Routes     = require('./routes/ciclo3.routes');  // Ciclo 3: CU6, CU14, CU15, CU20, CU21, CU23
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use(reservasRoutes);
 app.use(adminRoutes);           
 app.use(inventarioRoutes);      
 app.use(bitacoraRoutes);
+app.use(ciclo3Routes);
 
 // =============================================================================
 // ARRANCAR EL SERVIDOR

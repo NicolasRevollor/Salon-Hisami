@@ -22,10 +22,7 @@
 // =============================================================================
 
 const pool                     = require('../config/db');
-const bcrypt                   = require('bcryptjs');
 const { enviarCorreoCredenciales } = require('../config/mailer');
-
-const SALT_ROUNDS = 10;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EMPLEADOS
@@ -80,12 +77,11 @@ async function crearEmpleado(req, res) {
     try {
         await client.query('BEGIN');
 
-        // 1. Crear el usuario con rol Personal (contraseña hasheada con bcrypt)
-        const hash = await bcrypt.hash(contrasena, SALT_ROUNDS);
+        // 1. Crear el usuario con rol Personal — id_rol=2 corresponde a 'Personal' en tabla roles
         await client.query(
-            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, rol)
-             VALUES ($1, $2, $3, $4, $5, 'Personal')`,
-            [ci, nombre, telefono, email, hash]
+            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, id_rol)
+             VALUES ($1, $2, $3, $4, $5, 2)`,
+            [ci, nombre, telefono, email, contrasena]
         );
 
         // 2. Vincularlo como esteticista en la tabla personal (incluye el área de trabajo)
@@ -637,17 +633,15 @@ async function crearCliente(req, res) {
     if (!ci || !nombre || !email || !contrasena) {
         return res.status(400).json({ success: false, message: 'CI, nombre, correo y contraseña son obligatorios.' });
     }
-    const bcrypt = require('bcryptjs');
     const { enviarCorreoCredenciales } = require('../config/mailer');
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const hash = await bcrypt.hash(contrasena, 10);
-        // Incluir el campo tipo al crear el usuario (ej: 'Regular', 'VIP')
+        // id_rol=3 corresponde a 'Cliente' en tabla roles; tipo es 'Regular' o 'VIP'
         await client.query(
-            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, rol, tipo)
-             VALUES ($1, $2, $3, $4, $5, 'Cliente', $6)`,
-            [ci, nombre.trim(), telefono || null, email.trim(), hash, tipo || 'Regular']
+            `INSERT INTO usuarios (ci, nombre, telefono, email, contrasena, id_rol, tipo)
+             VALUES ($1, $2, $3, $4, $5, 3, $6)`,
+            [ci, nombre.trim(), telefono || null, email.trim(), contrasena, tipo || 'Regular']
         );
         await client.query(`INSERT INTO clientes (ci_usuario) VALUES ($1)`, [ci]);
         for (const id_cu of [1, 2, 3]) {
