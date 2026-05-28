@@ -6,7 +6,7 @@
 
 // ─── VARIABLES GLOBALES ──────────────────────────────────────────────────────
 // API_BASE → dirección del servidor. El frontend siempre pide datos aquí.
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://hisamisalon.com';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
 
 // usuarioActual → guarda los datos del usuario logueado ({ ci, nombre, rol, email })
 // Si es null, el usuario NO está logueado.
@@ -405,10 +405,18 @@ function actualizarNavbar() {
         document.getElementById('nav-user-welcome').innerHTML =
             '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> ' +
             usuarioActual.nombre.split(' ')[0] + ' (' + usuarioActual.rol + ')';
+        // Mostrar botón Reportes solo a Admin y Personal
+        const btnRep = document.getElementById('btn-reportes-nav');
+        if (btnRep) {
+            btnRep.style.display = (usuarioActual.rol === 'Administrador' || usuarioActual.rol === 'Personal')
+                ? 'inline-flex' : 'none';
+        }
         cargarMenuUsuario(usuarioActual.ci); // Cargar el menú personalizado
     } else {
         document.getElementById('nav-actions-public').style.display = 'flex';
         document.getElementById('nav-actions-logged').style.display = 'none';
+        const btnRep2 = document.getElementById('btn-reportes-nav');
+        if (btnRep2) btnRep2.style.display = 'none';
         const nav = document.getElementById('nav-menu-movil');
         // Cerrar el menú si estaba abierto (el contenido se reconstruye al abrirse)
         if (nav) nav.classList.remove('active');
