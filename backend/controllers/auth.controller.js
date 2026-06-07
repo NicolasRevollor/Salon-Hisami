@@ -22,6 +22,7 @@
 // =============================================================================
 
 const pool   = require('../config/db');
+const bcrypt = require('bcryptjs');
 const { transporter, enviarCorreoCredenciales } = require('../config/mailer');
 const { registrarEvento } = require('./bitacora.controller');
 
@@ -147,8 +148,12 @@ async function login(req, res) {
         if (result.rows.length > 0) {
             const user = result.rows[0];
 
-            // Comparar contraseña directo en texto plano
-            if (contrasena === user.contrasena) {
+            // Comparar contraseña: bcrypt si el hash empieza con $2b$, texto plano si no
+            const esHash = user.contrasena && user.contrasena.startsWith('$2b$');
+            const passwordOk = esHash
+                ? await bcrypt.compare(contrasena, user.contrasena)
+                : contrasena === user.contrasena;
+            if (passwordOk) {
                 intentosLogin.delete(identificador);
                 historialSesiones.unshift({
                     nombre: user.nombre, email: user.email,
