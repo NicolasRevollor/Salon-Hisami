@@ -48,7 +48,7 @@ async function initSistema() {
 
         // ── 2. casos_uso ──────────────────────────────────────────────────────
         await pool.query(`
-            INSERT INTO casos_uso (id_cu, id_paquete_sist, nombre, descripcion, ruta) VALUES
+            INSERT INTO casos_uso (id_cu, id_paquete_sist, nombre_cu, descripcion, ruta) VALUES
               (1,  1, 'CU1 - Iniciar Sesion',              'Login y registro de acceso',                  '/login'),
               (2,  1, 'CU2 - Cerrar Sesion',               'Salida del sistema',                          '/logout'),
               (18, 1, 'CU18 - Gestionar Roles/Privilegios','Define niveles de autoridad',                 '/admin-privilegios'),

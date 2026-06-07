@@ -87,10 +87,13 @@ async function buscarPreferenciasCliente() {
 }
 
 
+// guardarPreferencias(ci, datos_preferencias)
+// Diagrama: clic en "Guardar Preferencias" → dispara PUT /api/ciclo3/preferencias/:ci
 async function guardarPreferencias() {
     const ci = document.getElementById('pref-ci-actual')?.value;
     if (!ci) return;
 
+    // Datos enviados (Body JSON): color_cabello, largo, estilo, notas, ci_admin, nombre_admin, rol_admin
     const body = {
         color_cabello: document.getElementById('pref-color')?.value.trim()  || null,
         largo:         document.getElementById('pref-largo')?.value         || null,
@@ -102,6 +105,7 @@ async function guardarPreferencias() {
     };
 
     try {
+        // PUT /api/ciclo3/preferencias/:ci → llama a setPreferencias() en ciclo3.controller.js
         const res  = await fetch(`${API_BASE}/api/ciclo3/preferencias/${ci}`, {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -110,13 +114,16 @@ async function guardarPreferencias() {
         const data = await res.json();
 
         if (data.success) {
+            // alt [sin error de BD] → mostrarConfirmacionParcial (preferencias guardadas)
             mostrarToast('Preferencias guardadas exitosamente.', 'success');
             // Recargar historial para mostrar el nuevo registro
             await cargarHistorialPreferencias(ci);
         } else {
+            // [else - error de BD] → mostrarError (no se pudieron guardar las preferencias)
             mostrarToast(data.message, 'error');
         }
     } catch {
+        // [else - error de BD] → mostrarError (no se pudieron guardar las preferencias)
         mostrarToast('Error de conexión.', 'error');
     }
 }

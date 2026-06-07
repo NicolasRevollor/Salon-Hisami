@@ -512,6 +512,7 @@ function cambiarTabCiclo3(tab) {
     // Los otros tres ('preferencias', 'kit', 'recordatorios') necesitan que el admin
     // escriba algo primero (un CI o una fecha), así que no se cargan automáticamente.
     if (tab === 'alertas')  cargarAlertasStock();  // CU15: cargar tabla de stock bajo
+    // 1. seleccionarModuloConsumo() [Navegar a Gestión de Consumo]
     if (tab === 'recetas')  cargarRecetasAdmin();  // CU23: cargar tabla de servicios con receta
     if (tab === 'whatsapp') inicializarWhatsApp(); // CU21: cargar clientes y plantillas
 }

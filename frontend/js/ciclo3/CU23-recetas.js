@@ -15,7 +15,10 @@ async function cargarRecetasAdmin() {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px;">Cargando...</td></tr>';
 
     try {
+        // 2. GET /api/ciclo3/servicios-receta
         const res  = await fetch(`${API_BASE}/api/ciclo3/servicios-receta`);
+        // 4. lista_servicios_con_receta [{id_servicio, nombre, cantidad_insumos}, ...]
+        // 5. 200 OK { success: true, servicios: [...] }
         const data = await res.json();
 
         if (!data.success) {
@@ -28,6 +31,7 @@ async function cargarRecetasAdmin() {
             return;
         }
 
+        // 6. mostrarListaServicios(servicios[]) [Lista de servicios con recetas]
         tbody.innerHTML = data.servicios.map(s => {
             const tieneReceta = Number(s.total_insumos) > 0;
             // Cada fila de "Registrar Consumo" tiene una celda con id único para mostrar el resultado inline
@@ -52,6 +56,7 @@ async function cargarRecetasAdmin() {
                     </td>
 
                     <!-- Celda con botón + área para mostrar el resultado inline después de ejecutar -->
+                    <!-- 1. seleccionarServicio(id_servicio) [Selecciona un servicio] -->
                     <td style="padding:10px;text-align:center;" id="${tdId}">
                         ${tieneReceta
                             ? `<button onclick="descontarConsumoServicio(${s.id_servicio}, '${tdId}')"
@@ -80,6 +85,7 @@ async function descontarConsumoServicio(id_servicio, tdId) {
     if (celda) celda.innerHTML = '<span style="color:#888;font-size:12px;">Procesando...</span>';
 
     try {
+        // 2. POST /api/ciclo3/consumo/descontar { id_servicio }
         const res  = await fetch(`${API_BASE}/api/ciclo3/consumo/descontar`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -92,11 +98,12 @@ async function descontarConsumoServicio(id_servicio, tdId) {
         });
         const data = await res.json();
 
+        // [alt Stock suficiente en todos los insumos]
+        // 7a. 200 OK { success: true, mensaje: "Consumo descontado", descontados: N }
         if (data.success) {
-            // Armar el resumen de lo que se descontó: "Acetona: -2, Esmalte: -1"
             const resumen = data.insumos.map(i => `${i.nombre_insumo}: -${i.cantidad}`).join(', ');
 
-            // Mostrar el resultado inline en la celda (reemplaza el botón)
+            // 7b. mostrarConfirmacion(mensaje) [Consumo descontado exitosamente]
             if (celda) {
                 celda.innerHTML = `
                     <div style="font-size:12px;color:#27ae60;font-weight:600;margin-bottom:4px;">
@@ -106,7 +113,9 @@ async function descontarConsumoServicio(id_servicio, tdId) {
             }
             mostrarToast(`Consumo registrado correctamente.`, 'success');
         } else {
-            // Mostrar el error inline y restaurar el botón
+            // [alt Stock insuficiente en algún insumo]
+            // 7c. 400 Bad Request { success: false, message: "Stock insuficiente para: [producto]" }
+            // 7d. mostrarError(mensaje) [No se pudo descontar]
             if (celda) {
                 celda.innerHTML = `
                     <div style="font-size:12px;color:#e74c3c;margin-bottom:6px;">${data.message}</div>

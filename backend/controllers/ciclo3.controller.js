@@ -138,6 +138,8 @@ async function getPreferencias(req, res) {
 // Usa INSERT ... ON CONFLICT → si ya tiene preferencias, las actualiza;
 // si no tiene, las crea. No hay que revisar si existe antes.
 // Ruta: PUT /api/ciclo3/preferencias/:ci
+// guardarPreferencias(ci, datos_preferencias)
+// Diagrama: Ciclo3Controller recibe el PUT /api/ciclo3/preferencias/:ci
 async function setPreferencias(req, res) {
     const { ci } = req.params; // CI del cliente que se está editando
 
@@ -147,10 +149,9 @@ async function setPreferencias(req, res) {
     // (para registrar en la bitácora quién hizo qué)
 
     try {
-        // INSERT ... ON CONFLICT (ci_usuario) DO UPDATE SET ...
-        // Significa: intenta insertar una fila nueva;
-        // si ya hay una con ese ci_usuario (conflicto de clave primaria),
-        // entonces en vez de dar error, actualiza los campos.
+        // guardarOActualizarPreferencias(ci, datos_preferencias)
+        // Diagrama: modelo PreferenciasCliente — INSERT ON CONFLICT (usa ci_usuario como clave)
+        // Si ya existe una fila con ese ci_usuario → actualiza; si no → inserta nueva
         await pool.query(`
             INSERT INTO preferencias_cliente (ci_usuario, color_cabello, largo, estilo, notas, updated_at)
             VALUES ($1, $2, $3, $4, $5, NOW())
@@ -161,22 +162,57 @@ async function setPreferencias(req, res) {
                 notas         = EXCLUDED.notas,
                 updated_at    = NOW()
         `, [ci, color_cabello, largo, estilo, notas]);
+        // operacion_realizada → el INSERT/UPDATE completó sin error (alt [sin error de BD])
 
-        // Insertar también en el historial (acumula todos los cambios)
+        // ── B. Registrar en Historial de Preferencias ────────────────────────
+        // registrarEnHistorial(ci, datos_preferencias)
+        // datos_preferencias contiene: color_cabello, largo, estilo, notas
+        // (son los mismos campos que en preferencias_cliente)
+        //
+        // insertarHistorial(ci, datos_preferencias)
+        // INSERT INTO historial_preferencias_cliente
+        //   (ci_usuario, color_cabello, largo, estilo, notas)
+        //   VALUES ($1, $2, $3, $4, $5)
+        // -- NO se usa RETURNING id — El historial_id generado se descarta
         await pool.query(`
             INSERT INTO historial_preferencias_cliente (ci_usuario, color_cabello, largo, estilo, notas)
             VALUES ($1, $2, $3, $4, $5)
         `, [ci, color_cabello, largo, estilo, notas]);
+        // operacion_realizada → respuestaOK_parcial (historial registrado)
 
-        // Guardar en la bitácora que el admin editó las preferencias de este cliente
+        // ── C. Registrar Evento en Bitácora ──────────────────────────────────
+        // registrarEvento(ci_admin, nombre_admin, rol_admin, accion, descripcion, estado)
+        // INSERT INTO bitacora
+        //   (ci_usuario, nombre_usuario, rol, accion, descripcion, estado, fecha_hora)
+        //   VALUES ($1, $2, $3, $4, $5, $6, NOW())
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU6_PREFERENCIAS', `Preferencias actualizadas — cliente CI: ${ci}`, 'Exitoso');
+        // evento_registrado
 
+        // respuestaOK_final ("Preferencias guardadas correctamente.")
         res.json({ success: true, message: 'Preferencias guardadas correctamente.' });
     } catch (err) {
-        // Si falló, registrar en bitácora como Fallido
+        // ── D. Error de Base de Datos ─────────────────────────────────────────
+        //
+        // 1) Error al guardar/actualizar preferencias
+        //    guardarOActualizarPreferencias(ci, datos_preferencias) → ERROR de BD
+        //    (INSERT / UPDATE falla — la excepción llega aquí desde el try)
+        //
+        // 2) Captura del error (catch) — Se ejecuta el bloque catch del controlador
+        //    registrarEvento(ci_admin, nombre_admin, rol_admin,
+        //      accion='CU6_PREFERENCIAS',
+        //      descripcion='Preferencias actualizadas - cliente CI: {ci}',
+        //      estado='Fallido')
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU6_PREFERENCIAS', `Error al guardar preferencias CI: ${ci}`, 'Fallido');
+        // evento_registrado (estado = 'Fallido')
+
+        // 3) Respuesta de error al frontend
+        //    respuestaError (500 - error interno del servidor)
+        //    El frontend muestra el mensaje de error al usuario.
+        //    No se guardó ni preferencias, ni historial.
+        //    Nota: En caso de error, no se registra en historial_preferencias_cliente
+        //    ni se actualiza preferencias_cliente.
         res.status(500).json({ success: false, message: err.message });
     }
 }
@@ -242,18 +278,26 @@ async function getKit(req, res) {
 }
 
 // ── setKit ────────────────────────────────────────────────────────────────────
-// Reemplaza completamente el kit de una esteticista con la nueva lista enviada.
-// Usa transacción para que si algo falla a la mitad, no quede el kit a medias.
+// A. Asignar / Actualizar Kit Personal de Esteticista
 // Ruta: POST /api/ciclo3/kit
+//
+// asignarActualizarKit(ci_empleado, items[]) — clic en "Guardar Kit"
+// Ciclo3Controller: setKit(ci_empleado, items[])
+// [Todo el proceso ocurre en una sola función]
 async function setKit(req, res) {
-    // items → array de objetos { id_producto, cantidad } que viene del frontend
+    // Parámetros enviados (Body JSON):
+    //   ci_empleado (cédula), items[] (array de objetos: id_producto (int), cantidad (int > 0))
+    //   ci_admin, nombre_admin, rol_admin
     const { ci_empleado, items, ci_admin, nombre_admin, rol_admin } = req.body;
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        // Leer el kit actual para calcular la diferencia de cantidades
+        // Paso 1: Leer kit actual del empleado
+        // leerKitActual(ci_empleado) — SELECT kit_personal WHERE ci_empleado
+        // SELECT id_producto, cantidad FROM kit_personal WHERE ci_empleado = $1
+        // Resultado: kit_actual[] [{id_producto, cantidad}, ...]
         const kitActual = await client.query(
             'SELECT id_producto, cantidad FROM kit_personal WHERE ci_empleado = $1',
             [ci_empleado]
@@ -261,25 +305,33 @@ async function setKit(req, res) {
         const oldMap = {};
         for (const row of kitActual.rows) oldMap[row.id_producto] = Number(row.cantidad);
 
-        // Construir mapa del nuevo kit
+        // Paso 2: Calcular diferencias (nuevo vs actual)
+        // Para cada producto: diff = (nueva_cantidad) - (cantidad_actual)
+        //   diff > 0 → se necesita más stock
+        //   diff < 0 → se debe devolver stock
+        //   diff = 0 → sin cambio (se omite del mapa)
         const newMap = {};
         for (const item of (items || [])) newMap[item.id_producto] = Number(item.cantidad);
 
-        // Calcular diferencia por producto (positivo = se necesita más stock, negativo = se devuelve)
         const allIds = new Set([...Object.keys(oldMap).map(String), ...Object.keys(newMap).map(String)]);
         const diffs = {};
         for (const id of allIds) {
             const diff = (newMap[id] || 0) - (oldMap[id] || 0);
             if (diff !== 0) diffs[id] = diff;
         }
+        // continuar Validacion(diferencias_calculadas) — listo para validar stock por producto
 
-        // Validar stock suficiente para los aumentos antes de modificar nada
+        // validarDisponibilidadInventario(lista_productos_id) [POST /api/ciclo3/kit]
+        // obtenerInventarioActual(lista_productos_id)
+        // SELECT id_producto, nombre, cantidad FROM inventario WHERE id_producto IN (lista_productos_id)
+        // Resultado: inventario_actual_detalles (stock por producto)
         for (const [id_producto, diff] of Object.entries(diffs)) {
             if (diff > 0) {
                 const inv = await client.query(
                     'SELECT nombre, cantidad FROM inventario WHERE id_producto = $1', [id_producto]
                 );
                 if (!inv.rows.length || Number(inv.rows[0].cantidad) < diff) {
+                    // [else - stock_insuficiente] Paso 7 — Respuesta de error al frontend
                     await client.query('ROLLBACK');
                     const nombre = inv.rows[0]?.nombre || `producto ID ${id_producto}`;
                     return res.status(400).json({
@@ -290,29 +342,45 @@ async function setKit(req, res) {
             }
         }
 
-        // Borrar kit anterior e insertar el nuevo
+        // Paso 3: Registrar asignación del kit (REEMPLAZO TOTAL en transacción)
+        // Transacción (BEGIN / COMMIT) — iniciarTransaccion() ya se ejecutó al inicio
+
+        // reemplazarKit(ci_esteticista, items[]) -- DELETE kit anterior --
+        // DELETE FROM kit_personal WHERE ci_empleado = $1
         await client.query('DELETE FROM kit_personal WHERE ci_empleado = $1', [ci_empleado]);
+        // delete_ok
+
+        // loop [por cada item del kit (id_producto, cantidad)]
+        // insertarItemsKit(ci_esteticista, items[]) -- INSERT nuevos items --
+        // INSERT INTO kit_personal (ci_empleado, id_producto, cantidad) VALUES ($1, $2, $3) (por cada item)
         for (const item of (items || [])) {
             await client.query(
                 'INSERT INTO kit_personal (ci_empleado, id_producto, cantidad) VALUES ($1, $2, $3)',
                 [ci_empleado, item.id_producto, item.cantidad]
             );
         }
+        // insert_ok
 
-        // Aplicar diferencias al inventario
-        // diff > 0 → descontar; diff < 0 → devolver (sumar al stock)
+        // Paso 4: Actualizar stock del inventario (según diferencias calculadas)
+        // actualizarStock(id_producto, diff)
+        // si diff > 0 descuenta / si diff < 0 devuelve
+        // UPDATE inventario SET cantidad = cantidad - $1 WHERE id_producto = $2
         for (const [id_producto, diff] of Object.entries(diffs)) {
             await client.query(
                 'UPDATE inventario SET cantidad = cantidad - $1 WHERE id_producto = $2',
                 [diff, id_producto]
             );
         }
+        // stock_actualizado
 
+        // confirmarTransaccion()
         await client.query('COMMIT');
 
+        // Paso 5 — Registrar evento en bitácora
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU14_KIT', `Kit actualizado — empleado CI: ${ci_empleado}`, 'Exitoso');
 
+        // Paso 6 — Respuesta exitosa al frontend
         res.json({ success: true, message: 'Kit guardado correctamente.' });
     } catch (err) {
         await client.query('ROLLBACK');
@@ -334,8 +402,10 @@ async function setKit(req, res) {
 // Busca en el inventario todos los productos "en alerta" (poco stock).
 // COALESCE(stock_minimo, 5) → si stock_minimo es NULL, usa 5 como valor por defecto.
 // Ruta: GET /api/ciclo3/alertas-stock
+// getAlertasStock() [GET /api/ciclo3/alertas-stock]
 async function getAlertasStock(req, res) {
     try {
+        // obtenerProductosStockCritico()
         const r = await pool.query(`
             SELECT id_producto, nombre, cantidad, unidad,
                    COALESCE(stock_minimo, 5) AS stock_minimo
@@ -343,6 +413,7 @@ async function getAlertasStock(req, res) {
             WHERE cantidad < COALESCE(stock_minimo, 5) * 2  -- alerta cuando el stock está por debajo del doble del mínimo
             ORDER BY cantidad ASC                            -- primero los más críticos (menor stock)
         `);
+        // productos_alerta[] [lista de productos en stock crítico]
         res.json({ success: true, alertas: r.rows });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -353,15 +424,19 @@ async function getAlertasStock(req, res) {
 // Actualiza el stock mínimo de un producto específico del inventario.
 // Permite que el admin configure a partir de qué cantidad un producto "entra en alerta".
 // Ruta: PUT /api/ciclo3/stock-minimo
+// actualizarStockMinimo(id_producto, stock_minimo) [PUT /api/ciclo3/stock-minimo]
 async function updateStockMinimo(req, res) {
     const { id_producto, stock_minimo } = req.body; // qué producto y cuál es el nuevo mínimo
     try {
+        // updateStockMinimo(id_producto, stock_minimo)
         await pool.query(
             'UPDATE inventario SET stock_minimo = $1 WHERE id_producto = $2',
             [stock_minimo, id_producto]
         );
+        // respuestaOK(message) { success: true, message: "Stock mínimo actualizado correctamente." }
         res.json({ success: true, message: 'Mínimo actualizado.' });
     } catch (err) {
+        // [alt error de BD] respuestaError(error_servidor) { success: false, message: "Error interno del servidor." }
         res.status(500).json({ success: false, message: err.message });
     }
 }
@@ -376,12 +451,14 @@ async function updateStockMinimo(req, res) {
 // Devuelve las citas de una fecha específica que estén Pendientes o Confirmadas.
 // El frontend manda la fecha como parámetro ?fecha=2026-05-25
 // Ruta: GET /api/ciclo3/citas-proximas?fecha=YYYY-MM-DD
+// getCitasProximas(fecha) [GET /api/ciclo3/citas-proximas?fecha=YYYY-MM-DD]
 async function getCitasProximas(req, res) {
     const { fecha } = req.query; // la fecha viene como parámetro en la URL
     try {
         // Si no mandaron fecha, usar el día de hoy
         const fechaBusqueda = fecha || new Date().toISOString().split('T')[0];
 
+        // obtenerCitasProximas(fecha)
         const r = await pool.query(`
             SELECT r.id_cita,
                    r.fecha::text AS fecha_cita,           -- convertir a texto para que JSON lo lea bien
@@ -402,6 +479,8 @@ async function getCitasProximas(req, res) {
             ORDER BY r.hora
         `, [fechaBusqueda]);
 
+        // citas_proximas[] (lista de citas con datos del cliente)
+        // respuestaOK(citas[]) [200 OK]
         res.json({ success: true, citas: r.rows });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -412,6 +491,7 @@ async function getCitasProximas(req, res) {
 // Envía un correo de recordatorio a cada cliente de la lista recibida.
 // El frontend manda el array de citas ya filtrado (solo las que el admin seleccionó).
 // Ruta: POST /api/ciclo3/recordatorios
+// enviarRecordatorios(citas[], ci_admin, nombre_admin, rol_admin) [POST /api/ciclo3/enviar-recordatorios]
 async function enviarRecordatorios(req, res) {
     // citas → lista de citas con email del cliente, nombre, fecha y hora
     const { citas, ci_admin, nombre_admin, rol_admin } = req.body;
@@ -419,13 +499,14 @@ async function enviarRecordatorios(req, res) {
     let enviados = 0; // contador de correos exitosos
     let errores  = 0; // contador de correos fallidos
 
-    // Recorrer CADA cita y mandar el correo individualmente
+    // loop [Por cada cita en citas[]]
     for (const cita of (citas || [])) {
-        // Si la cita no tiene email, no se puede mandar el correo → contar como error
+        // if (cita.email_cliente vacío) → omitirCita() (incrementar errores)
         if (!cita.email_cliente) { errores++; continue; }
 
         try {
-            // transporter.sendMail → envía el correo usando Gmail (config/mailer.js)
+            // enviarEmail(cita.email_cliente, cita.fecha_cita, cita.hora_inicio, cita.servicios, ci_admin, nombre_admin, rol_admin)
+            // sendMail(to, subject, html)
             await transporter.sendMail({
                 from:    '"Salón HISAMI" <no-reply@hisami.com>', // quién envía (nombre visible)
                 to:      cita.email_cliente,                      // destinatario
@@ -444,7 +525,8 @@ async function enviarRecordatorios(req, res) {
                         <p style="font-size:12px;color:#999;">Correo automático — no respondas este mensaje.</p>
                     </div>`
             });
-            enviados++; // si llegó aquí es que el correo se mandó bien
+            // envioExitoso() → incrementarEnviados() (enviados = enviados + 1)
+            enviados++;
         } catch (err) {
             // Si el correo de UNA cita falla, seguir con las demás (no detener todo)
             console.error('❌ Error recordatorio a', cita.email_cliente, err.message);
@@ -458,6 +540,8 @@ async function enviarRecordatorios(req, res) {
         `Recordatorios enviados: ${enviados}, errores: ${errores}`,
         enviados > 0 ? 'Exitoso' : 'Fallido');
 
+    // respuestaOK(enviados, errores) [200 OK]
+    // [alt Error al procesar la solicitud] → errores individuales se acumulan en errores++ dentro del loop; no hay catch externo
     res.json({ success: true, enviados, errores });
 }
 
@@ -473,8 +557,10 @@ async function enviarRecordatorios(req, res) {
 // Devuelve la lista de clientes que tienen número de teléfono registrado.
 // Solo clientes con teléfono porque sin número no se puede mandar WhatsApp.
 // Ruta: GET /api/ciclo3/clientes-telefono
+// getClientesConTelefono() [GET /api/ciclo3/clientes-telefono]
 async function getClientesConTelefono(req, res) {
     try {
+        // obtenerClientesConTelefono()
         const r = await pool.query(`
             SELECT u.ci, u.nombre, u.telefono, u.email
             FROM usuarios u
@@ -484,6 +570,8 @@ async function getClientesConTelefono(req, res) {
               AND u.telefono <> ''         -- descartar los que tienen teléfono vacío
             ORDER BY u.nombre
         `);
+        // clientes[] (lista de clientes con teléfono)
+        // respuestaOK(clientes[]) [200 OK]
         res.json({ success: true, clientes: r.rows });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -495,29 +583,32 @@ async function getClientesConTelefono(req, res) {
 // wa.me es el servicio oficial de WhatsApp para abrir conversaciones por enlace.
 // Formato: https://wa.me/591NUMERO?text=MENSAJE_CODIFICADO
 // Ruta: POST /api/ciclo3/whatsapp
+// prepararMensaje(numero, mensaje, ci_admin, nombre_admin, rol_admin) [POST /api/ciclo3/whatsapp]
 async function prepararWhatsApp(req, res) {
     const { numero, mensaje, ci_admin, nombre_admin, rol_admin } = req.body;
     try {
+        // [alt Número o mensaje faltante] respuestaError("Número y mensaje son requeridos.") [400 Bad Request]
         if (!numero || !mensaje)
             return res.status(400).json({ success: false, message: 'Número y mensaje son requeridos.' });
 
         // Limpiar el número: eliminar todo lo que no sea dígito (espacios, guiones, paréntesis)
         const tel = String(numero).replace(/\D/g, '');
 
-        // Armar el enlace. encodeURIComponent convierte el mensaje a formato URL
-        // (reemplaza espacios por %20, etc. para que la URL sea válida)
-        // 591 es el código de país de Bolivia
+        // generarEnlaceWA(numero, mensaje)
+        // url = "https://wa.me/591" + numero + "?text=" + encodeURIComponent(mensaje)
         const url = `https://wa.me/591${tel}?text=${encodeURIComponent(mensaje)}`;
 
         // Registrar en bitácora que se preparó un mensaje
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU21_WHATSAPP', `Mensaje WhatsApp preparado para +591${tel}`, 'Exitoso');
 
-        // Devolver el enlace al frontend para que lo abra en una nueva pestaña
+        // url_generada (enlace wa.me)
+        // respuestaOK(url) [200 OK]
         res.json({ success: true, url });
     } catch (err) {
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU21_WHATSAPP', `Error WhatsApp para: ${numero}`, 'Fallido');
+        // [Error interno del servidor] respuestaError("Error al generar enlace.") [500 Internal Server Error]
         res.status(500).json({ success: false, message: err.message });
     }
 }
@@ -533,8 +624,10 @@ async function prepararWhatsApp(req, res) {
 // Lista todos los servicios activos junto con cuántos insumos tiene su receta.
 // Si total_insumos = 0, el servicio no tiene receta configurada todavía.
 // Ruta: GET /api/ciclo3/servicios-receta
+// 2. GET /api/ciclo3/servicios-receta
 async function getServiciosConReceta(req, res) {
     try {
+        // 3. SELECT s.id, s.nombre, COUNT(u.id_producto) AS cantidad_insumos FROM servicios s LEFT JOIN utiliza u ON s.id = u.id_servicio WHERE s.activo = true GROUP BY s.id, s.nombre ORDER BY s.nombre ASC
         const r = await pool.query(`
             SELECT s.id_servicio,
                    s.nombre_servicio AS nombre,            -- la columna real se llama nombre_servicio
@@ -545,6 +638,8 @@ async function getServiciosConReceta(req, res) {
             GROUP BY s.id_servicio, s.nombre_servicio
             ORDER BY s.nombre_servicio
         `);
+        // 4. lista_servicios_con_receta [{id_servicio, nombre, cantidad_insumos}, ...]
+        // 5. 200 OK { success: true, servicios: [...] }
         res.json({ success: true, servicios: r.rows });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -559,12 +654,13 @@ async function getServiciosConReceta(req, res) {
 //   3. Si alcanza para todo, descontar → si no, rechazar con mensaje de error
 // Usa transacción para que si falla algún descuento, no se descuente ninguno.
 // Ruta: POST /api/ciclo3/consumo/descontar
+// 2. POST /api/ciclo3/consumo/descontar { id_servicio }
 async function descontarConsumo(req, res) {
     const { id_servicio, ci_admin, nombre_admin, rol_admin } = req.body;
 
     const client = await pool.connect(); // conexión dedicada para la transacción
     try {
-        // Paso 1: Leer todos los insumos de la receta de este servicio
+        // 3. SELECT id_producto, cantidad FROM utiliza WHERE id_servicio = ?
         const receta = await client.query(`
             SELECT u.id_producto,
                    u.cantidad,                          -- cuánto se necesita según la receta
@@ -574,6 +670,7 @@ async function descontarConsumo(req, res) {
             JOIN inventario i ON i.id_producto = u.id_producto
             WHERE u.id_servicio = $1
         `, [id_servicio]);
+        // 4. lista_insumos [{id_producto, cantidad}, ...]
 
         // Si la receta está vacía, no se puede descontar nada
         if (!receta.rows.length)
@@ -586,29 +683,30 @@ async function descontarConsumo(req, res) {
         // Filtrar los insumos donde stock_actual < cantidad_necesaria
         const sinStock = receta.rows.filter(r => Number(r.stock_actual) < Number(r.cantidad));
         if (sinStock.length) {
-            // Armar mensaje con los nombres de los insumos que no alcanzan
             const nombres = sinStock.map(r => r.nombre_insumo).join(', ');
+            // [alt Stock insuficiente en algún insumo] 7c. 400 Bad Request { success: false, message: "Stock insuficiente para: [producto]" }
             return res.status(400).json({
                 success: false,
                 message: `Stock insuficiente para: ${nombres}`
             });
         }
 
-        // Paso 3: Descontar → usar transacción para que todo sea atómico
+        // [alt Stock suficiente en todos los insumos]
         await client.query('BEGIN');
+        // 5. loop [Por cada insumo en lista_insumos] UPDATE inventario SET cantidad = cantidad - ? WHERE id_producto = ?
         for (const item of receta.rows) {
-            // Restar la cantidad de la receta del stock actual de ese insumo
             await client.query(
                 'UPDATE inventario SET cantidad = cantidad - $1 WHERE id_producto = $2',
                 [item.cantidad, item.id_producto]
             );
         }
-        await client.query('COMMIT'); // confirmar todos los descuentos a la vez
+        // 6. filas_actualizadas
+        await client.query('COMMIT');
 
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU23_CONSUMO', `Insumos descontados — servicio ID: ${id_servicio}`, 'Exitoso');
 
-        // Devolver también el listado de lo que se descontó (para mostrar en el frontend)
+        // 7a. 200 OK { success: true, mensaje: "Consumo descontado", descontados: N }
         res.json({ success: true, message: 'Insumos descontados correctamente.', insumos: receta.rows });
     } catch (err) {
         await client.query('ROLLBACK'); // si algo falla, revertir todo
