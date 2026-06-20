@@ -221,8 +221,9 @@
             </div>
             
             <div class="tabs-cliente">
-                <button class="tab-cli active" id="tab-cli-citas" onclick="cambiarTabCliente('citas')">Mis Citas</button>
-                <button class="tab-cli" id="tab-cli-favoritos" onclick="cambiarTabCliente('favoritos')">Favoritos</button>
+                <button class="tab-cli active" id="tab-cli-citas"     onclick="cambiarTabCliente('citas')">Mis Citas</button>
+                <button class="tab-cli" id="tab-cli-favoritos"         onclick="cambiarTabCliente('favoritos')">Favoritos</button>
+                <button class="tab-cli" id="tab-cli-facturas"          onclick="cambiarTabCliente('facturas')">Mis Facturas</button>
             </div>
 
             <!-- VISTA: MIS CITAS -->
@@ -244,6 +245,17 @@
                 </div>
                 <div class="lista-reservas" id="contenedor-favoritos">
                     <p style="color:#999; text-align:center; padding:30px;">Aún no tienes esteticistas favoritas.</p>
+                </div>
+            </div>
+
+            <!-- VISTA: MIS FACTURAS (CU5) -->
+            <div id="vista-cli-facturas" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Mis Facturas</h3>
+                    <button class="btn-outline-dark" onclick="cargarMisFacturas()">Refrescar</button>
+                </div>
+                <div class="lista-reservas" id="contenedor-mis-facturas">
+                    <p style="color:#999; text-align:center; padding:30px;">Cargando tus facturas...</p>
                 </div>
             </div>
         </div>
@@ -309,10 +321,12 @@
                 <button class="btn-configuracion" onclick="abrirModalConfig()">Mi Perfil</button>
             </div>
             
-            <!-- Selector de grupo principal: Gestión (Ciclos 1-2) vs Ciclo 3 -->
+            <!-- Selector de grupo principal: Gestión (Ciclos 1-2) / Ciclo 3 / Ciclo 4 / CU17 -->
             <div class="tabs-login" style="margin-bottom:10px;">
-                <button class="tab-btn active" id="tab-grupo-gestion" onclick="cambiarGrupoAdmin('gestion')">1</button>
-                <button class="tab-btn"        id="tab-grupo-ciclo3"  onclick="cambiarGrupoAdmin('ciclo3')">2</button>
+                <button class="tab-btn active" id="tab-grupo-gestion"  onclick="cambiarGrupoAdmin('gestion')">1</button>
+                <button class="tab-btn"        id="tab-grupo-ciclo3"   onclick="cambiarGrupoAdmin('ciclo3')">2</button>
+                <button class="tab-btn"        id="tab-grupo-ciclo4"   onclick="cambiarGrupoAdmin('ciclo4')">3</button>
+                <button class="tab-btn"        id="tab-grupo-ciclo4b"  onclick="cambiarGrupoAdmin('ciclo4b')">4</button>
             </div>
 
             <!-- Tabs del grupo Gestión (Ciclos 1 y 2) -->
@@ -337,6 +351,18 @@
                 <button class="tab-cli" id="tab-ciclo3-recordatorios"        onclick="cambiarTabCiclo3('recordatorios')">Recordatorios</button>
                 <button class="tab-cli" id="tab-ciclo3-whatsapp"             onclick="cambiarTabCiclo3('whatsapp')">WhatsApp</button>
                 <button class="tab-cli" id="tab-ciclo3-recetas"              onclick="cambiarTabCiclo3('recetas')">Recetas</button>
+            </div>
+
+            <!-- Tabs del grupo Ciclo 4 -->
+            <div id="tabs-grupo-ciclo4" class="tabs-cliente seccion-oculta" style="flex-wrap:wrap;">
+                <button class="tab-cli active" id="tab-ciclo4-facturas"  onclick="cambiarTabCiclo4('facturas')">Facturas</button>
+                <button class="tab-cli" id="tab-ciclo4-caja"             onclick="cambiarTabCiclo4('caja')">Caja</button>
+                <button class="tab-cli" id="tab-ciclo4-ordenes"          onclick="cambiarTabCiclo4('ordenes')">Órdenes de Compra</button>
+            </div>
+
+            <!-- Tabs del grupo Ciclo 4B — CU17 Reporte Financiero -->
+            <div id="tabs-grupo-ciclo4b" class="tabs-cliente seccion-oculta" style="flex-wrap:wrap;">
+                <button class="tab-cli active" id="tab-ciclo4b-reporte" onclick="cambiarTabCiclo4b('reporte')">Reporte Financiero</button>
             </div>
 
             <div id="vista-admin-servicios">
@@ -481,7 +507,7 @@
                                 <th>Esteticista</th>
                                 <th>Servicios</th>
                                 <th>Estado</th>
-                                <th>Pago</th>
+                                <th>Pago / Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-admin-citas-body"></tbody>
@@ -801,6 +827,135 @@
                     </table>
                 </div>
             </div>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 VISTAS CICLO 4
+                 vista-ciclo4-{nombre} → se muestra/oculta igual que ciclo3
+            ══════════════════════════════════════════════════════════════════ -->
+
+            <!-- VISTA FACTURAS (CU5) -->
+            <div id="vista-ciclo4-facturas" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Emitir Facturas</h3>
+                    <button class="btn-outline-dark" onclick="cargarPagosFacturables()">Refrescar</button>
+                </div>
+                <div class="admin-table-container dash-card">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Monto</th>
+                                <th>Servicios</th>
+                                <th>Fecha Pago</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-facturas-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VISTA CAJA (CU13) -->
+            <div id="vista-ciclo4-caja" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Apertura / Cierre de Caja</h3>
+                    <button class="btn-outline-dark" onclick="cargarEstadoCaja()">Refrescar</button>
+                </div>
+                <!-- Estado actual de caja y movimientos del día -->
+                <div id="caja-estado-contenedor"></div>
+                <!-- Historial de cajas cerradas -->
+                <div id="caja-historial-contenedor" style="margin-top:24px;"></div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 VISTA CICLO 4 — CU22 Órdenes de Compra
+            ══════════════════════════════════════════════════════════════════ -->
+            <div id="vista-ciclo4-ordenes" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Órdenes de Compra</h3>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn-outline-dark" onclick="ocAbrirModalProveedores()">Proveedores</button>
+                        <button class="btn-nueva-reserva" onclick="ocAbrirModalNuevaOrden()">+ Nueva Orden</button>
+                    </div>
+                </div>
+                <div id="oc-lista-contenedor"></div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 VISTAS CICLO 4B — CU17 Reporte Financiero (solo Administrador)
+            ══════════════════════════════════════════════════════════════════ -->
+
+            <!-- VISTA REPORTE FINANCIERO (CU17) -->
+            <div id="vista-ciclo4b-reporte" class="seccion-oculta">
+                <div class="reservas-header">
+                    <h3>Reporte Financiero</h3>
+                    <button class="btn-outline-dark" onclick="limpiarReporteFinanciero()">Limpiar</button>
+                </div>
+
+                <!-- Selector de período -->
+                <div class="dash-card" style="padding:20px;margin-bottom:20px;">
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;">
+
+                        <!-- Tipo de reporte -->
+                        <div class="input-group" style="flex:0 0 170px;margin-bottom:0;">
+                            <label style="font-size:13px;font-weight:600;color:#555;">Tipo de Reporte</label>
+                            <select id="rf-tipo" onchange="rfCambiarTipo()"
+                                style="width:100%;padding:8px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;font-size:14px;cursor:pointer;">
+                                <option value="mensual">Mensual</option>
+                                <option value="semanal">Semanal</option>
+                                <option value="personalizado">Personalizado</option>
+                            </select>
+                        </div>
+
+                        <!-- Input Mensual: mes -->
+                        <div id="rf-bloque-mes" class="input-group" style="flex:1;min-width:160px;margin-bottom:0;">
+                            <label style="font-size:13px;font-weight:600;color:#555;">Mes</label>
+                            <input type="month" id="rf-mes" onchange="rfAplicarMes()"
+                                style="width:100%;padding:8px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                        </div>
+
+                        <!-- Input Semanal: cualquier día de la semana -->
+                        <div id="rf-bloque-semana" class="input-group" style="flex:1;min-width:160px;margin-bottom:0;display:none;">
+                            <label style="font-size:13px;font-weight:600;color:#555;">Semana (elige cualquier día)</label>
+                            <input type="date" id="rf-semana" onchange="rfAplicarSemana()"
+                                style="width:100%;padding:8px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                        </div>
+
+                        <!-- Inputs Personalizado: fecha inicio y fin -->
+                        <div id="rf-bloque-inicio" class="input-group" style="flex:1;min-width:140px;margin-bottom:0;display:none;">
+                            <label style="font-size:13px;font-weight:600;color:#555;">Fecha inicio</label>
+                            <input type="date" id="rf-fecha-inicio"
+                                style="width:100%;padding:8px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                        </div>
+                        <div id="rf-bloque-fin" class="input-group" style="flex:1;min-width:140px;margin-bottom:0;display:none;">
+                            <label style="font-size:13px;font-weight:600;color:#555;">Fecha fin</label>
+                            <input type="date" id="rf-fecha-fin"
+                                style="width:100%;padding:8px;border:none;border-bottom:1px solid #aaa;outline:none;background:transparent;font-family:inherit;">
+                        </div>
+
+                        <button onclick="generarReporteFinanciero()"
+                            class="btn-registrarse" style="padding:10px 24px;white-space:nowrap;">
+                            Generar Reporte
+                        </button>
+                    </div>
+
+                    <!-- Descripción del período calculado -->
+                    <p id="rf-periodo-texto" style="font-size:12px;color:#888;margin:12px 0 0;padding-top:10px;border-top:1px solid #f0e8df;display:none;"></p>
+                </div>
+
+                <!-- Área de resultados — poblada dinámicamente por CU17-reporte-financiero.js -->
+                <div id="rf-contenido"></div>
+
+                <!-- Botón exportar PDF — visible solo cuando hay datos -->
+                <div id="rf-acciones" style="display:none;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid #f0e8df;">
+                    <button onclick="exportarReportePDF()"
+                        style="padding:10px 28px;background:#d4a373;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">
+                        Exportar PDF
+                    </button>
+                </div>
+            </div>
+
         </div>
     </section>
 
@@ -1196,6 +1351,153 @@
         </div>
     </div>
 
+    <!-- ── CU22: MODAL NUEVA ORDEN DE COMPRA ─────────────────────────────── -->
+    <div id="modal-oc-nueva" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:620px;max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="font-size:20px;color:var(--texto-oscuro);">Nueva Orden de Compra</h3>
+                <button onclick="ocCerrarModalNuevaOrden()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+
+            <!-- Proveedor y fechas -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+                <div class="input-group" style="margin-bottom:0;">
+                    <label style="font-size:12px;font-weight:600;color:#555;">Proveedor</label>
+                    <select id="oc-select-proveedor" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:7px;font-family:inherit;font-size:13px;"></select>
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label style="font-size:12px;font-weight:600;color:#555;">Fecha de entrega esperada</label>
+                    <input type="date" id="oc-input-fecha-entrega" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:7px;font-family:inherit;font-size:13px;">
+                </div>
+            </div>
+
+            <!-- Agregar producto -->
+            <div style="background:#fdf8f3;border-radius:10px;padding:14px;margin-bottom:16px;">
+                <p style="font-size:12px;font-weight:700;color:#b5813a;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px;">Agregar Producto</p>
+                <div style="display:grid;grid-template-columns:1fr 90px 110px auto;gap:8px;align-items:end;">
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Producto</label>
+                        <select id="oc-select-producto" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit;font-size:12px;"></select>
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Cantidad</label>
+                        <input type="number" id="oc-input-cantidad" placeholder="0" min="0.01" step="0.01"
+                            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Precio unitario ($)</label>
+                        <input type="number" id="oc-input-precio" placeholder="0.00" min="0" step="0.01"
+                            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+                    </div>
+                    <button onclick="ocAgregarItemOrden()"
+                        style="padding:8px 16px;background:#d4a373;color:white;border:none;border-radius:6px;cursor:pointer;font-size:18px;font-weight:700;line-height:1;">+</button>
+                </div>
+            </div>
+
+            <!-- Lista de ítems -->
+            <div id="oc-items-lista" style="min-height:80px;max-height:200px;overflow-y:auto;border:1px solid #f0e8df;border-radius:8px;margin-bottom:12px;"></div>
+
+            <!-- Total -->
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:16px;">
+                <span style="font-size:14px;color:#555;">Total estimado:</span>
+                <span id="oc-total-display" style="font-size:20px;font-weight:700;color:#27ae60;">$0.00</span>
+            </div>
+
+            <!-- Notas -->
+            <div class="input-group" style="margin-bottom:18px;">
+                <label style="font-size:12px;font-weight:600;color:#555;">Notas / Observaciones</label>
+                <textarea id="oc-input-notas" rows="2"
+                    style="width:100%;padding:9px;border:1px solid #ddd;border-radius:7px;font-family:inherit;font-size:13px;resize:vertical;"></textarea>
+            </div>
+
+            <button onclick="ocGuardarOrden()" class="btn-registrarse w-100">Registrar Orden de Compra</button>
+        </div>
+    </div>
+
+    <!-- ── CU22: MODAL DETALLE ORDEN ──────────────────────────────────────── -->
+    <div id="modal-oc-detalle" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:580px;max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 id="oc-det-titulo" style="font-size:20px;color:var(--texto-oscuro);">Detalle de Orden</h3>
+                <button onclick="ocCerrarModalDetalle()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;font-size:13px;">
+                <div><span style="color:#888;">Proveedor:</span><br><strong id="oc-det-proveedor"></strong></div>
+                <div><span style="color:#888;">Estado:</span><br><strong id="oc-det-estado"></strong></div>
+                <div><span style="color:#888;">Fecha de orden:</span><br><span id="oc-det-fecha"></span></div>
+                <div><span style="color:#888;">Entrega esperada:</span><br><span id="oc-det-entrega"></span></div>
+                <div><span style="color:#888;">Registrado por:</span><br><span id="oc-det-admin"></span></div>
+                <div><span style="color:#888;">Notas:</span><br><span id="oc-det-notas" style="color:#666;font-style:italic;"></span></div>
+            </div>
+
+            <div class="admin-table-container" style="margin:0 0 16px;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th style="text-align:center;">Cantidad</th>
+                            <th style="text-align:right;">Precio Unit.</th>
+                            <th style="text-align:right;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="oc-det-tabla-body"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="text-align:right;font-weight:700;padding:10px;">Total:</td>
+                            <td style="text-align:right;font-weight:700;font-size:16px;color:#27ae60;padding:10px;" id="oc-det-total"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <button onclick="ocCerrarModalDetalle()" class="btn-outline-dark w-100">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- ── CU22: MODAL PROVEEDORES ────────────────────────────────────────── -->
+    <div id="modal-oc-proveedores" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:620px;max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="font-size:20px;color:var(--texto-oscuro);">Gestión de Proveedores</h3>
+                <button onclick="ocCerrarModalProveedores()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+
+            <!-- Formulario agregar proveedor -->
+            <div style="background:#fdf8f3;border-radius:10px;padding:16px;margin-bottom:16px;">
+                <p style="font-size:12px;font-weight:700;color:#b5813a;margin:0 0 12px;text-transform:uppercase;letter-spacing:.5px;">Agregar Proveedor</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Nombre *</label>
+                        <input type="text" id="oc-prov-nombre" placeholder="Distribuidora XYZ"
+                            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Contacto</label>
+                        <input type="text" id="oc-prov-contacto" placeholder="Juan Pérez"
+                            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Teléfono</label>
+                        <input type="text" id="oc-prov-telefono" placeholder="70012345"
+                            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;color:#888;">Email</label>
+                        <input type="email" id="oc-prov-email" placeholder="proveedor@email.com"
+                            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;">
+                    </div>
+                </div>
+                <button onclick="ocGuardarProveedor()" class="btn-registrarse" style="padding:9px 24px;font-size:13px;">+ Agregar</button>
+            </div>
+
+            <!-- Lista de proveedores -->
+            <div id="oc-prov-lista"></div>
+
+            <button onclick="ocCerrarModalProveedores()" class="btn-outline-dark w-100" style="margin-top:14px;">Cerrar</button>
+        </div>
+    </div>
+
     <!-- MODAL: EDITAR EMPLEADO (incluye gestión de especialidades) -->
     <div id="modal-editar-empleado" class="modal-overlay seccion-oculta">
         <div class="caja-translucida modal-content" style="max-width:520px;">
@@ -1512,8 +1814,13 @@
     <script src="js/ciclo3/CU20-recordatorios.js"></script>
     <script src="js/ciclo3/CU21-whatsapp.js"></script>
     <script src="js/ciclo3/CU23-recetas.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Ciclo 4 -->
     <script src="js/ciclo4/CU4-pago-reserva.js"></script>
+    <script src="js/ciclo4/CU5-factura.js"></script>
+    <script src="js/ciclo4/CU13-caja.js"></script>
+    <script src="js/ciclo4/CU22-orden-compra.js"></script>
+    <script src="js/ciclo4/CU17-reporte-financiero.js"></script>
     <!-- Paneles y catálogo -->
     <script src="js/catalogo.js"></script>
     <script src="js/panel-cliente.js"></script>

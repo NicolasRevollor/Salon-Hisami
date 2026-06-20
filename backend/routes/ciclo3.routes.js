@@ -16,45 +16,38 @@
 //   Así es más fácil encontrar cada parte.
 // =============================================================================
 
-const router = require('express').Router(); // Router de Express: maneja las URL
-const ctrl   = require('../controllers/ciclo3.controller'); // importar todas las funciones del ciclo 3
+const router = require('express').Router();
 
-// ── CU6 — Preferencias del Cliente ───────────────────────────────────────────
-// GET  → el frontend pide las preferencias de un cliente por su CI
-// PUT  → el frontend manda los cambios para guardar/actualizar las preferencias
-router.get('/api/ciclo3/preferencias/:ci',          ctrl.getPreferencias);
-router.put('/api/ciclo3/preferencias/:ci',          ctrl.setPreferencias);
-router.get('/api/ciclo3/historial-preferencias/:ci', ctrl.getHistorialPreferencias);
+const cu6  = require('../controllers/ciclo3/CU6-preferencias.controller');
+const cu14 = require('../controllers/ciclo3/CU14-kit-personal.controller');
+const cu15 = require('../controllers/ciclo3/CU15-alertas-stock.controller');
+const cu20 = require('../controllers/ciclo3/CU20-recordatorios.controller');
+const cu21 = require('../controllers/ciclo3/CU21-whatsapp.controller');
+const cu23 = require('../controllers/ciclo3/CU23-consumo.controller');
 
-// ── CU14 — Kit Personal del Esteticista ──────────────────────────────────────
-// GET  → pedir el kit asignado a una esteticista (por su CI)
-// POST → guardar (reemplazar) el kit completo de una esteticista
-router.get('/api/ciclo3/kit/:ci',  ctrl.getKit);
-router.post('/api/ciclo3/kit',     ctrl.setKit);
+// CU6 — Preferencias del Cliente
+router.get('/api/ciclo3/preferencias/:ci',           cu6.getPreferencias);
+router.put('/api/ciclo3/preferencias/:ci',           cu6.setPreferencias);
+router.get('/api/ciclo3/historial-preferencias/:ci', cu6.getHistorialPreferencias);
 
-// ── CU15 — Alertas de Stock ───────────────────────────────────────────────────
-// GET → traer todos los productos con stock <= al mínimo configurado
-// PUT → cambiar el número mínimo de un producto específico
-router.get('/api/ciclo3/alertas-stock', ctrl.getAlertasStock);
-router.put('/api/ciclo3/stock-minimo',  ctrl.updateStockMinimo);
+// CU14 — Kit Personal del Esteticista
+router.get('/api/ciclo3/kit/:ci', cu14.getKit);
+router.post('/api/ciclo3/kit',    cu14.setKit);
 
-// ── CU20 — Recordatorios de Cita por Gmail ───────────────────────────────────
-// GET  → buscar las citas Pendientes/Confirmadas de una fecha (para mostrarlas antes de enviar)
-// POST → mandar los correos de recordatorio a los clientes seleccionados
-router.get('/api/ciclo3/citas-proximas',  ctrl.getCitasProximas);
-router.post('/api/ciclo3/recordatorios',  ctrl.enviarRecordatorios);
+// CU15 — Alertas de Stock
+router.get('/api/ciclo3/alertas-stock', cu15.getAlertasStock);
+router.put('/api/ciclo3/stock-minimo',  cu15.updateStockMinimo);
 
-// ── CU21 — WhatsApp Empresarial ───────────────────────────────────────────────
-// GET  → lista de clientes que tienen número de teléfono registrado
-// POST → generar el enlace wa.me con el número y el mensaje
-router.get('/api/ciclo3/clientes-telefono', ctrl.getClientesConTelefono);
-router.post('/api/ciclo3/whatsapp',         ctrl.prepararWhatsApp);
+// CU20 — Recordatorios de Cita por Gmail
+router.get('/api/ciclo3/citas-proximas', cu20.getCitasProximas);
+router.post('/api/ciclo3/recordatorios', cu20.enviarRecordatorios);
 
-// ── CU23 — Gestionar Consumo por Servicio ────────────────────────────────────
-// GET  → lista de servicios activos con cuántos insumos tiene su receta
-// POST → descontar los insumos de la receta del stock del inventario
-router.get('/api/ciclo3/servicios-receta',   ctrl.getServiciosConReceta);
-router.post('/api/ciclo3/consumo/descontar', ctrl.descontarConsumo);
+// CU21 — WhatsApp Empresarial
+router.get('/api/ciclo3/clientes-telefono', cu21.getClientesConTelefono);
+router.post('/api/ciclo3/whatsapp',         cu21.prepararWhatsApp);
 
-// Exportar el router para que server.js lo pueda registrar con app.use(ciclo3Routes)
+// CU23 — Gestionar Consumo por Servicio
+router.get('/api/ciclo3/servicios-receta',   cu23.getServiciosConReceta);
+router.post('/api/ciclo3/consumo/descontar', cu23.descontarConsumo);
+
 module.exports = router;

@@ -335,8 +335,24 @@ function navegarCU(nombreCU) {
     }
     if (!usuarioActual) { mostrarToast('Debes iniciar sesión', 'error'); return; }
 
+    // ── CU17: Reporte Financiero → cuarta pestaña ────────────────────────────
+    if (n.includes('reporte') && (n.includes('financiero') || n.includes('financi')))
+        { mostrarSeccion('centro-gestion'); cambiarGrupoAdmin('ciclo4b'); cambiarTabCiclo4b('reporte'); return; }
+
+    // ── CUs del Ciclo 4: navegan a la tercera pestaña del Centro de Gestión ──
+    const irCiclo4 = (subtab) => {
+        mostrarSeccion('centro-gestion');
+        cambiarGrupoAdmin('ciclo4');
+        cambiarTabCiclo4(subtab);
+    };
+    if (n.includes('factura') || n.includes('recibo'))
+        { irCiclo4('facturas'); return; }
+    if (n.includes('caja') || n.includes('apertura') || n.includes('cierre'))
+        { irCiclo4('caja'); return; }
+    if (n.includes('pago') && n.includes('reserva'))
+        { mostrarCentroGestion('citas'); return; }
+
     // ── CUs del Ciclo 3: navegan a la segunda pestaña del Centro de Gestión ──
-    // Cada condición detecta palabras clave del nombre del CU y abre el tab correcto
     const irCiclo3 = (subtab) => {
         mostrarSeccion('centro-gestion');
         cambiarGrupoAdmin('ciclo3');
@@ -445,6 +461,12 @@ const TABS_ADMIN = [
 // y a una vista id="vista-ciclo3-{nombre}" también en el HTML.
 const TABS_CICLO3 = ['preferencias','kit','alertas','recordatorios','whatsapp','recetas'];
 
+// Tabs del grupo Ciclo 4 (tercera pestaña del Centro de Gestión).
+const TABS_CICLO4 = ['facturas','caja','ordenes'];
+
+// Tabs del grupo Ciclo 4B (cuarta pestaña — CU17 Reporte Financiero).
+const TABS_CICLO4B = ['reporte'];
+
 // Mapeo: palabra clave en el nombre del CU → id de la tab del Centro de Gestión.
 // 'privilegios' no está: es solo para Administrador y se maneja aparte.
 const CU_NOMBRE_A_TAB = [
@@ -468,26 +490,21 @@ const CU_NOMBRE_A_TAB = [
 // grupo → 'gestion' o 'ciclo3'
 // ─────────────────────────────────────────────────────────────────────────────
 function cambiarGrupoAdmin(grupo) {
-    // Recorrer ambos grupos y mostrar/ocultar su barra de tabs + marcar el botón activo
-    ['gestion', 'ciclo3'].forEach(g => {
-        // Si g es el grupo que queremos mostrar (g === grupo) → quitar seccion-oculta
-        // Si es el otro grupo → agregar seccion-oculta (para ocultarlo)
+    ['gestion', 'ciclo3', 'ciclo4', 'ciclo4b'].forEach(g => {
         document.getElementById('tabs-grupo-' + g)?.classList.toggle('seccion-oculta', g !== grupo);
-
-        // Al botón del grupo activo agregar clase 'active', al otro quitarla
-        document.getElementById('tab-grupo-' + g)?.classList.toggle('active', g === grupo);
+        document.getElementById('tab-grupo-'  + g)?.classList.toggle('active', g === grupo);
     });
 
-    // Ocultar TODAS las vistas de AMBOS grupos (limpiar pantalla antes de mostrar la nueva)
-    TABS_ADMIN.forEach(t  => document.getElementById('vista-admin-'  + t)?.classList.add('seccion-oculta'));
-    TABS_CICLO3.forEach(t => document.getElementById('vista-ciclo3-' + t)?.classList.add('seccion-oculta'));
+    // Ocultar TODAS las vistas de TODOS los grupos
+    TABS_ADMIN.forEach(t   => document.getElementById('vista-admin-'   + t)?.classList.add('seccion-oculta'));
+    TABS_CICLO3.forEach(t  => document.getElementById('vista-ciclo3-'  + t)?.classList.add('seccion-oculta'));
+    TABS_CICLO4.forEach(t  => document.getElementById('vista-ciclo4-'  + t)?.classList.add('seccion-oculta'));
+    TABS_CICLO4B.forEach(t => document.getElementById('vista-ciclo4b-' + t)?.classList.add('seccion-oculta'));
 
-    // Mostrar el primer tab del grupo seleccionado
-    if (grupo === 'gestion') {
-        cambiarTabAdmin('servicios');    // primera pestaña del grupo Gestión
-    } else {
-        cambiarTabCiclo3('preferencias'); // primera pestaña del grupo Ciclo 3
-    }
+    if (grupo === 'gestion')       cambiarTabAdmin('servicios');
+    else if (grupo === 'ciclo3')   cambiarTabCiclo3('preferencias');
+    else if (grupo === 'ciclo4')   cambiarTabCiclo4('facturas');
+    else if (grupo === 'ciclo4b')  cambiarTabCiclo4b('reporte');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -511,10 +528,37 @@ function cambiarTabCiclo3(tab) {
     // Cargar datos automáticamente solo para los tabs que tienen datos que mostrar de inmediato.
     // Los otros tres ('preferencias', 'kit', 'recordatorios') necesitan que el admin
     // escriba algo primero (un CI o una fecha), así que no se cargan automáticamente.
-    if (tab === 'alertas')  cargarAlertasStock();  // CU15: cargar tabla de stock bajo
-    // 1. seleccionarModuloConsumo() [Navegar a Gestión de Consumo]
-    if (tab === 'recetas')  cargarRecetasAdmin();  // CU23: cargar tabla de servicios con receta
-    if (tab === 'whatsapp') inicializarWhatsApp(); // CU21: cargar clientes y plantillas
+    if (tab === 'alertas')  cargarAlertasStock();
+    if (tab === 'recetas')  cargarRecetasAdmin();
+    if (tab === 'whatsapp') inicializarWhatsApp();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cambiarTabCiclo4
+// Cambia la pestaña activa DENTRO del grupo Ciclo 4 (CU5 Facturas, CU13 Caja).
+// ─────────────────────────────────────────────────────────────────────────────
+function cambiarTabCiclo4(tab) {
+    TABS_CICLO4.forEach(t => {
+        document.getElementById('vista-ciclo4-' + t)?.classList.add('seccion-oculta');
+        document.getElementById('tab-ciclo4-'   + t)?.classList.remove('active');
+    });
+    document.getElementById('vista-ciclo4-' + tab)?.classList.remove('seccion-oculta');
+    document.getElementById('tab-ciclo4-'   + tab)?.classList.add('active');
+
+    if (tab === 'facturas') cargarPagosFacturables();
+    if (tab === 'caja')     cargarEstadoCaja();
+    if (tab === 'ordenes')  cargarOrdenesCompra();
+}
+
+// Cambia la pestaña activa del grupo Ciclo 4B (CU17 Reporte Financiero).
+function cambiarTabCiclo4b(tab) {
+    TABS_CICLO4B.forEach(t => {
+        document.getElementById('vista-ciclo4b-' + t)?.classList.add('seccion-oculta');
+        document.getElementById('tab-ciclo4b-'   + t)?.classList.remove('active');
+    });
+    document.getElementById('vista-ciclo4b-' + tab)?.classList.remove('seccion-oculta');
+    document.getElementById('tab-ciclo4b-'   + tab)?.classList.add('active');
+    if (tab === 'reporte' && typeof rfInicializar === 'function') rfInicializar();
 }
 
 // Abre el Centro de Gestión mostrando solo los tabs a los que el usuario tiene acceso.
@@ -523,14 +567,24 @@ async function mostrarCentroGestion(tabInicial) {
     mostrarSeccion('centro-gestion');
 
     if (usuarioActual?.rol === 'Administrador') {
-        // Admin ve todos los tabs, incluido privilegios
         TABS_ADMIN.forEach(t => {
             const btn = document.getElementById('tab-admin-' + t);
             if (btn) btn.style.display = '';
         });
-        // Mostrar el grupo Gestión por defecto y su primer tab
-        cambiarGrupoAdmin('gestion');
-        if (tabInicial) cambiarTabAdmin(tabInicial);
+        // Si el tab inicial es de ciclo4b (CU17), ir al grupo 4
+        if (tabInicial && TABS_CICLO4B.includes(tabInicial)) {
+            cambiarGrupoAdmin('ciclo4b');
+            cambiarTabCiclo4b(tabInicial);
+        } else if (tabInicial && TABS_CICLO4.includes(tabInicial)) {
+            cambiarGrupoAdmin('ciclo4');
+            cambiarTabCiclo4(tabInicial);
+        } else if (tabInicial && TABS_CICLO3.includes(tabInicial)) {
+            cambiarGrupoAdmin('ciclo3');
+            cambiarTabCiclo3(tabInicial);
+        } else {
+            cambiarGrupoAdmin('gestion');
+            if (tabInicial) cambiarTabAdmin(tabInicial);
+        }
         return;
     }
 

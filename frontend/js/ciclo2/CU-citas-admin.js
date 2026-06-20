@@ -78,7 +78,15 @@ function _renderReservas(citas) {
     tbody.innerHTML = citas.map(c => {
         const claseEstado = ESTADO_CLASE[c.estado] || 'badge-pendiente';
         const monto = c.monto ? `Bs ${parseFloat(c.monto).toFixed(2)}` : '—';
-        const pago  = c.metodo_pago ? `${c.metodo_pago} · ${monto}` : monto;
+        const yaPagado = c.metodo_pago === 'stripe';
+        const celdaPago = yaPagado
+            ? `<span style="color:#27ae60;font-weight:600;">✔ Pagado</span><br><small style="color:#888;">${monto}</small>`
+            : (c.estado !== 'Cancelada'
+                ? `<button onclick="event.stopPropagation(); abrirModalPago(${c.id_cita})"
+                       style="padding:5px 12px;background:#635bff;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
+                       Pagar con Stripe
+                   </button>`
+                : monto);
         return `
             <tr data-id="${c.id_cita}" onclick="_seleccionarFila(${c.id_cita}, this)">
                 <td>${c.id_cita}</td>
@@ -88,7 +96,7 @@ function _renderReservas(citas) {
                 <td>${c.nombre_esteticista || '—'}</td>
                 <td>${c.servicios || '—'}</td>
                 <td><span class="badge ${claseEstado}">${c.estado}</span></td>
-                <td>${pago}</td>
+                <td>${celdaPago}</td>
             </tr>
         `;
     }).join('');

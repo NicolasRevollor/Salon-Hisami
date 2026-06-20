@@ -18,11 +18,11 @@
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51TeKymRA3GUDlNAhM0EETlr7TCaWARifoOkkFTCZSQzjTlEBdiXxA9U81XuvDBSZeqmFZDhVLMFg2k5d93WjG3zw00jFfVZfq9';
 
 // Instancia de Stripe y del elemento de tarjeta (se inicializan al abrir el modal)
-let stripeInstance = null;
-let cardElement    = null;
-let currentPaymentIntentId = null;
-let currentMontoPago       = 0;
-let currentIdCita          = null;
+let stripeInstance       = null;
+let cardElement          = null;
+let currentClientSecret  = null;
+let currentMontoPago     = 0;
+let currentIdCita        = null;
 
 
 // ── abrirModalPago ────────────────────────────────────────────────────────────
@@ -47,8 +47,8 @@ async function abrirModalPago(id_cita) {
             return mostrarToast('Error: ' + data.message, 'error');
         }
 
-        currentPaymentIntentId = data.payment_intent_id;
-        currentMontoPago       = data.monto;
+        currentClientSecret = data.client_secret;
+        currentMontoPago    = data.monto;
 
         // Paso 2: mostrar el modal con los datos de la reserva
         mostrarModalPago(data);
@@ -174,11 +174,9 @@ async function procesarPagoStripe() {
     btn.textContent  = 'Procesando...';
 
     try {
-        // Confirmar el pago con Stripe.js
+        // Confirmar el pago con Stripe.js usando el client_secret guardado al abrir el modal
         const { error, paymentIntent } = await stripeInstance.confirmCardPayment(
-            // Stripe necesita el client_secret que guardamos al abrir el modal
-            // Lo obtenemos del PaymentIntent creado en el backend
-            await obtenerClientSecret(),
+            currentClientSecret,
             { payment_method: { card: cardElement } }
         );
 
@@ -191,8 +189,7 @@ async function procesarPagoStripe() {
             return;
         }
 
-        if (paymentIntent.status === 'succeeded') {
-            // Pago exitoso → registrar en el backend
+        if (paymentIntent && paymentIntent.status === 'succeeded') {
             await registrarPagoEnBackend(paymentIntent.id);
         }
 
@@ -202,20 +199,6 @@ async function procesarPagoStripe() {
         btn.disabled    = false;
         btn.textContent = `Pagar $${parseFloat(currentMontoPago).toFixed(2)} USD`;
     }
-}
-
-
-// ── obtenerClientSecret ───────────────────────────────────────────────────────
-// Vuelve a pedir el client_secret al backend (puede que el PaymentIntent ya exista).
-// En una implementación más robusta se guardaría al abrir el modal.
-async function obtenerClientSecret() {
-    const resp = await fetch('/api/ciclo4/crear-pago-intent', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ id_cita: currentIdCita })
-    });
-    const data = await resp.json();
-    return data.client_secret;
 }
 
 
@@ -258,8 +241,7 @@ async function registrarPagoEnBackend(paymentIntentId) {
 function cerrarModalPago() {
     const modal = document.getElementById('modal-pago-stripe');
     if (modal) modal.style.display = 'none';
-    // Limpiar referencias
-    cardElement            = null;
-    currentPaymentIntentId = null;
-    currentIdCita          = null;
+    cardElement         = null;
+    currentClientSecret = null;
+    currentIdCita       = null;
 }

@@ -11,15 +11,14 @@
 // "Favoritos" (#vista-cli-favoritos) según la pestaña clickeada.
 // =============================================================================
 function cambiarTabCliente(tab) {
-    // Recorrer ambas pestañas y ocultar/mostrar según cuál esté activa
-    ['citas', 'favoritos'].forEach(t => {
+    ['citas', 'favoritos', 'facturas'].forEach(t => {
         const vista  = document.getElementById('vista-cli-' + t);
         const boton  = document.getElementById('tab-cli-' + t);
-        if (vista)  vista.classList.toggle('seccion-oculta', t !== tab); // ocultar si NO es la tab activa
-        if (boton)  boton.classList.toggle('active', t === tab);         // marcar como activo si SÍ es la tab
+        if (vista)  vista.classList.toggle('seccion-oculta', t !== tab);
+        if (boton)  boton.classList.toggle('active', t === tab);
     });
-    // Al entrar a Favoritos, renderizar la lista actualizada
     if (tab === 'favoritos') renderizarFavoritos();
+    if (tab === 'facturas')  cargarMisFacturas();
 }
 
 // =============================================================================

@@ -7,5 +7,6 @@ router.get('/api/reportes/empleados',            ctrl.getEmpleadosReporte);
 router.get('/api/reportes/comisiones',           ctrl.getReporteComisiones);
 router.get('/api/reportes/reservas-mes',         ctrl.getReservasPorMes);
 router.get('/api/reportes/bitacora-logins',      ctrl.getReporteBitacora);
+router.get('/api/reportes/financiero',           ctrl.getReporteFinanciero);
 
 module.exports = router;
