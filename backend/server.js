@@ -20,6 +20,7 @@ const ciclo4Routes     = require('./routes/ciclo4.routes');
 const ciclo4bRoutes    = require('./routes/ciclo4b.routes');
 const ciclo4cRoutes    = require('./routes/ciclo4c.routes');
 const reportesRoutes   = require('./routes/reportes.routes');
+const ciclo5Routes     = require('./routes/ciclo5.routes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use(ciclo4Routes);
 app.use(ciclo4bRoutes);
 app.use(ciclo4cRoutes);
 app.use(reportesRoutes);
+app.use(ciclo5Routes);
 
 const PORT = 3000;
 const server = app.listen(PORT, () => {

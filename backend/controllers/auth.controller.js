@@ -201,7 +201,7 @@ async function registro(req, res) {
     if (!/(?=.*\d)(?=.*[A-Z])(?=.*[^a-zA-Z0-9])/.test(contrasena)) {
         return res.status(400).json({
             success: false,
-            message: 'La contraseña debe tener al menos un NÚMERO, una MAYÚSCULA y un CARÁCTER ESPECIAL.'
+            message: 'La contraseña debe tener al menos un NÚMERO, una MAYÚSCULA, una minúscula y un CARÁCTER ESPECIAL.'
         });
     }
 

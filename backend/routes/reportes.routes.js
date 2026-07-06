@@ -1,6 +1,7 @@
 const router  = require('express').Router();
 const ctrl    = require('../controllers/reportes.controller');
 const cu17    = require('../controllers/ciclo4/CU17-reporte-financiero.controller');
+const voz     = require('../controllers/voice-report.controller');
 
 router.get('/api/reportes/servicios-requeridos', ctrl.getServiciosMasRequeridos);
 router.get('/api/reportes/servicios-insumos',    ctrl.getServiciosMasInsumos);
@@ -11,5 +12,8 @@ router.get('/api/reportes/bitacora-logins',      ctrl.getReporteBitacora);
 
 // CU17 — Reporte Financiero
 router.get('/api/reportes/financiero',           cu17.getReporteFinanciero);
+
+// Voz — Interpretación de comando de voz en lenguaje natural
+router.post('/api/reportes/voz',                 voz.interpretarVoz);
 
 module.exports = router;

@@ -79,6 +79,11 @@ async function confirmarPago(req, res) {
                 estado_stripe            = EXCLUDED.estado_stripe
         `, [id_cita, monto, payment_intent_id]);
 
+        await pool.query(
+            `UPDATE reservas SET estado = 'Completada' WHERE id_cita = $1`,
+            [id_cita]
+        );
+
         await registrarEvento(ci_admin, nombre_admin, rol_admin,
             'CU4_PAGO', `Pago Stripe confirmado — reserva #${id_cita} — $${monto} USD`, 'Exitoso');
         res.json({ success: true, message: `Pago de $${monto} USD registrado correctamente.` });

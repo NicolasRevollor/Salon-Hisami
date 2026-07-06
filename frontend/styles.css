@@ -185,8 +185,11 @@ body {
 .reserva-info p { font-size: 14px; color: #777; margin-bottom: 4px; }
 
 .badge { padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: 600; }
-.badge.confirmada { background: #d1fae5; color: #065f46; }
-.badge.pendiente { background: #fef08a; color: #854d0e; }
+.badge.confirmada  { background: #dbeafe; color: #1e40af; }
+.badge.completada  { background: #d1fae5; color: #065f46; }
+.badge.pendiente   { background: #fef08a; color: #854d0e; }
+.badge.cancelada   { background: #fee2e2; color: #991b1b; }
+.badge.finalizada  { background: #e9d5ff; color: #6b21a8; }
 
 .dash-card { background: #fff; padding: 30px; border-radius: 12px; border: 1px solid #eaeaea; }
 .comisiones-box { margin-top: 10px; font-size: 14px; color: var(--texto-oscuro); }
@@ -637,6 +640,10 @@ body {
     /* ─── Formulario auth ────────────────────────────────── */
     .auth-container { max-width: 100%; padding: 0; }
     .form-box { padding: 28px 18px; }
+
+    /* ─── Fondo con "background-attachment: fixed" es lento/con
+       glitches en navegadores móviles (iOS Safari en particular) ─ */
+    .fondo-sistema-interno { background-attachment: scroll; }
 }
 
 /* =========================================================
@@ -687,4 +694,40 @@ body {
 
     /* Info section */
     .info-section { padding: 40px 16px; }
+}
+
+/* =========================================================
+   RESPONSIVE — FORMULARIOS EN FILA DENTRO DE MODALES
+   Varios modales usan estilos inline "display:grid" o
+   "display:flex" con dos columnas (proveedor/fecha, CI/teléfono,
+   precio/categoría, fecha inicio/fin, etc). El estilo inline
+   gana sobre una regla de media query normal, así que se
+   necesita !important para forzarlos a una sola columna
+   en pantallas angostas.
+   ========================================================= */
+@media (max-width: 600px) {
+    .modal-content [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+    /* Hijos con "grid-column: span 2" (ej. campo Servicio en Filtrar Reservas):
+       al quedar solo 1 columna explícita, "span 2" crearía una columna
+       implícita extra en vez de simplemente ocupar la única columna. */
+    .modal-content [style*="grid-template-columns"] [style*="grid-column"] {
+        grid-column: auto !important;
+    }
+
+    /* Filas con dos <div class="input-group w-100"> (precio/categoría,
+       CI/teléfono, fecha inicio/fin, fecha/esteticista, hora/pago, etc.) */
+    .modal-content form > div:has(> .input-group.w-100) {
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+
+    /* Fila "select + cantidad + botón" de los modales de Compra y Receta */
+    .modal-content div:has(> #compra-insumo-select),
+    .modal-content div:has(> #receta-insumo-select) {
+        flex-wrap: wrap !important;
+    }
+    #compra-insumo-select, #receta-insumo-select { min-width: 100%; }
+    #compra-cantidad, #receta-cantidad { flex: 1; width: auto !important; }
 }

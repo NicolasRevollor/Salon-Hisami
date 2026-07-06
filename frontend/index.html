@@ -318,7 +318,10 @@
         <div class="dashboard-container" style="max-width: 1100px;">
             <div class="header-cliente">
                 <h2 id="titulo-admin">Centro de Gestión</h2>
-                <button class="btn-configuracion" onclick="abrirModalConfig()">Mi Perfil</button>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn-configuracion" onclick="abrirModalConfig()">Mi Perfil</button>
+                    <button class="btn-configuracion" id="btn-reportes-centro-gestion" style="display:none;" onclick="abrirModalReportes()">Reportes</button>
+                </div>
             </div>
             
             <!-- Selector de grupo principal: Gestión (Ciclos 1-2) / Ciclo 3 / Ciclo 4 / CU17 -->
@@ -370,6 +373,24 @@
                     <h3>Catálogo de Servicios</h3>
                     <button class="btn-nueva-reserva" onclick="abrirModalAdminServicio()">+ Agregar Servicio</button>
                 </div>
+
+                <!-- CU24 — Buscar servicios por categoría -->
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; padding:12px 16px; background:#fdf3e7; border-radius:10px; border:1px solid #f0d9ba;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b5813a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <label for="select-cat-admin-servicios" style="font-weight:600; font-size:13px; color:#7a5c2e;">Filtrar por categoría:</label>
+                    <select id="select-cat-admin-servicios"
+                            onchange="filtrarServiciosPorCategoria()"
+                            style="padding:7px 12px; border:1px solid #d4a373; border-radius:8px; font-size:13px; font-family:inherit; min-width:200px; background:white; color:#333; cursor:pointer;">
+                        <option value="todas">— Todas las categorías —</option>
+                    </select>
+                    <button class="btn-outline-dark"
+                            onclick="limpiarFiltroCategoriaAdmin()"
+                            style="padding:7px 14px; font-size:13px;">
+                        Limpiar
+                    </button>
+                    <span id="filtro-cat-resultado" style="font-size:12px; color:#888; font-style:italic;"></span>
+                </div>
+
                 <div class="admin-table-container dash-card">
                     <table class="admin-table">
                         <thead>
@@ -486,6 +507,9 @@
                 <div class="reservas-header">
                     <h3>Gestión de Reservas</h3>
                     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <button id="btn-confirmar-reserva-admin"
+                            style="display:none;padding:8px 18px;font-size:14px;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;"
+                            onclick="confirmarReservaAdmin()">Confirmar Reserva</button>
                         <button id="btn-cancelar-reserva-admin" class="btn-accion eliminar"
                             style="display:none;padding:8px 18px;font-size:14px;"
                             onclick="cancelarReservaAdmin()">Cancelar Reserva</button>
@@ -1550,6 +1574,65 @@
         </div>
     </div>
 
+    <!-- MODAL: CU25 — FICHA DEL ESTETICISTA -->
+    <div id="modal-ficha-esteticista" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:500px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="font-size:20px; color:var(--texto-oscuro);">Ficha del Esteticista</h3>
+                <button onclick="cerrarModalFichaEsteticista()"
+                        style="background:none; border:none; font-size:20px; cursor:pointer; color:#888;">✕</button>
+            </div>
+            <!-- Contenido dinámico cargado por verFichaEsteticista() -->
+            <div id="ficha-esteticista-cuerpo"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: CU26 — HISTORIAL DE PREFERENCIAS DEL CLIENTE -->
+    <div id="modal-preferencias-cliente" class="modal-overlay seccion-oculta">
+        <div class="caja-translucida modal-content" style="max-width:540px; max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; position:sticky; top:0; background:white; padding-bottom:12px; border-bottom:1px solid #f0e8df; z-index:1;">
+                <h3 id="pref-cli-titulo" style="font-size:18px; color:var(--texto-oscuro); margin:0;">Preferencias del cliente</h3>
+                <button onclick="cerrarModalPreferenciasCliente()"
+                        style="background:none; border:none; font-size:20px; cursor:pointer; color:#888;">✕</button>
+            </div>
+
+            <!-- Historial de observaciones -->
+            <div style="margin-bottom:20px;">
+                <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#b5813a; margin-bottom:10px;">Historial de observaciones</p>
+                <div id="pref-cli-historial" style="max-height:260px; overflow-y:auto; padding-right:4px;">
+                    <!-- Cargado dinámicamente por _cu26CargarHistorial() -->
+                </div>
+            </div>
+
+            <hr style="border:none; border-top:1px solid #f0e8df; margin-bottom:18px;">
+
+            <!-- Formulario para registrar nueva preferencia -->
+            <div>
+                <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#b5813a; margin-bottom:14px;">Registrar nueva observación</p>
+                <form id="form-nueva-preferencia" novalidate onsubmit="manejarRegistrarPreferencia(event)">
+                    <div class="input-group">
+                        <label>Tipo de observación</label>
+                        <select id="pref-cli-tipo"
+                                style="width:100%; padding:10px; border:none; border-bottom:1px solid #aaa; outline:none; background:transparent; font-family:inherit;">
+                            <option value="">— Selecciona un tipo —</option>
+                            <!-- Opciones cargadas por JS al abrir el modal -->
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin-top:12px;">
+                        <label>Descripción</label>
+                        <textarea id="pref-cli-descripcion" rows="3"
+                                  placeholder="Ej: alergia a productos con amoniaco, prefiere técnica japonesa..."
+                                  style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-family:inherit; resize:vertical;"></textarea>
+                    </div>
+                    <button id="btn-guardar-preferencia" type="submit"
+                            class="btn-registrarse w-100 mt-15">
+                        Guardar Preferencia
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: CU3 — RESERVAR CITA -->
     <div id="modal-reserva" class="modal-overlay seccion-oculta">
         <div class="caja-translucida modal-content" style="max-width:560px; max-height:92vh; overflow-y:auto;">
@@ -1604,6 +1687,7 @@
                         <label>Método de Pago</label>
                         <select id="reserva-pago" style="width:100%; padding:10px; border:none; border-bottom:1px solid #aaa; outline:none; background:transparent; font-family:inherit;">
                             <option value="">-- Selecciona --</option>
+                            <option value="stripe">Stripe (pagar en línea)</option>
                             <option value="efectivo">Efectivo</option>
                             <option value="qr">Código QR</option>
                         </select>
@@ -1807,6 +1891,10 @@
     <script src="js/ciclo2/CU19-bitacora.js"></script>
     <script src="js/ciclo2/CU3-reservar.js"></script>
     <script src="js/ciclo2/CU-inventario.js"></script>
+    <!-- Ciclo 5 -->
+    <script src="js/ciclo5/CU24-buscar-servicios.js"></script>
+    <script src="js/ciclo5/CU25-ficha-esteticista.js"></script>
+    <script src="js/ciclo5/CU26-historial-preferencias.js"></script>
     <!-- Ciclo 3 -->
     <script src="js/ciclo3/CU6-preferencias.js"></script>
     <script src="js/ciclo3/CU14-kit-personal.js"></script>

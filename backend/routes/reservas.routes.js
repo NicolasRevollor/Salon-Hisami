@@ -26,6 +26,7 @@ router.get('/api/verificar-disponibilidad', ctrl.verificarDisponibilidad);
 router.get('/api/reservas/cliente/:ci',     ctrl.getReservasCliente);      // ← específica primero
 router.get('/api/reservas/esteticista/:ci', ctrl.getReservasEsteticista);  // ← específica primero
 router.post('/api/reservas',                ctrl.crearReserva);
+router.put('/api/reservas/:id_cita/confirmar', ctrl.confirmarReserva);  // específica primero
 router.put('/api/reservas/:id_cita/completar', ctrl.completarReserva);  // específica primero
 router.put('/api/reservas/:id_cita',           ctrl.editarReserva);
 router.delete('/api/reservas/:id_cita',        ctrl.cancelarReserva);

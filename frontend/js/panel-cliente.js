@@ -41,9 +41,15 @@ async function cargarReservasCliente() {
             data.reservas.forEach(r => {
                 const fecha      = formatearFecha(r.fecha); // "15 de enero de 2025"
                 const hora       = r.hora ? String(r.hora).substring(0, 5) : '—'; // "14:30"
-                const esCfm        = r.estado === 'Confirmada';
-                const cancelable   = r.estado !== 'Cancelada' && r.estado !== 'Finalizada';
+                const BADGE_MAP  = { 'Confirmada': 'confirmada', 'Completada': 'completada', 'Cancelada': 'cancelada', 'Finalizada': 'finalizada' };
+                const badgeClase = BADGE_MAP[r.estado] || 'pendiente';
+                const cancelable   = !['Cancelada', 'Finalizada', 'Completada'].includes(r.estado);
                 const reprogramable = cancelable && (r.reprogramaciones || 0) === 0;
+                const pagoStripeCompletado = r.estado_stripe === 'succeeded';
+                // Mostrar botón Stripe cuando: estado activo + sin pago registrado todavía
+                const puedepagarStripe = ['Pendiente', 'Confirmada'].includes(r.estado)
+                    && !r.metodo_pago
+                    && !pagoStripeCompletado;
 
                 // Escapar comillas simples del nombre para que no rompa el onclick inline
                 const nomEst = (r.nombre_esteticista || '').replace(/'/g, "\\'");
@@ -57,7 +63,7 @@ async function cargarReservasCliente() {
                             <span class="reserva-acordeon-titulo">${r.nombre_item || 'Sin especificar'}</span>
                             <span class="reserva-acordeon-fecha">${fecha} — ${hora}</span>
                         </div>
-                        <span class="badge ${esCfm ? 'confirmada' : 'pendiente'}">${r.estado}</span>
+                        <span class="badge ${badgeClase}">${r.estado}</span>
                         <span class="acordeon-arrow">▼</span>
                     </button>
                     <div class="reserva-acordeon-detalle">
@@ -65,9 +71,9 @@ async function cargarReservasCliente() {
                         <p><strong>Esteticista:</strong> ${r.nombre_esteticista || '—'}</p>
                         <p><strong>Fecha:</strong> ${fecha}</p>
                         <p><strong>Hora:</strong> ${hora}</p>
-                        <p><strong>Método de pago:</strong> ${r.metodo_pago || '—'}</p>
+                        <p><strong>Método de pago:</strong> ${pagoStripeCompletado ? 'Stripe' : (r.metodo_pago || 'Pendiente de pago')}</p>
                         <p><strong>Monto:</strong> Bs ${r.monto ? parseFloat(r.monto).toFixed(2) : '—'}</p>
-                        <p><strong>Estado:</strong> <span class="badge ${esCfm ? 'confirmada' : 'pendiente'}">${r.estado}</span></p>
+                        <p><strong>Estado:</strong> <span class="badge ${badgeClase}">${r.estado}</span></p>
                         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
                             ${cancelable
                                 ? `<button class="btn-cancelar-reserva" onclick="cancelarReserva(${r.id_cita})">Cancelar</button>`
@@ -84,6 +90,13 @@ async function cargarReservasCliente() {
                                     onclick="guardarFavorito({ci:'${ciEst}',nombre:'${nomEst}',especialidades:'${(r.especialidades || '').replace(/'/g,"\\'")}'})"
                                     >★ Favorita</button>`
                                 : ''}
+                            ${pagoStripeCompletado
+                                ? `<span style="font-size:12px;color:#27ae60;font-weight:600;align-self:center;">✔ Pago realizado</span>`
+                                : (puedepagarStripe
+                                    ? `<button onclick="abrirModalPago(${r.id_cita})"
+                                        style="padding:7px 16px;background:#635bff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">
+                                        Pagar con Stripe</button>`
+                                    : '')}
                         </div>
                     </div>`;
                 cont.appendChild(div);
@@ -127,6 +140,9 @@ async function cancelarReserva(id_cita) {
         }
     } catch { mostrarToast('Error de conexión al cancelar', 'error'); }
 }
+
+// Alias para que CU4-pago-reserva.js pueda refrescar "Mis Reservas" tras el pago
+function cargarMisReservas() { cargarReservasCliente(); }
 
 // =============================================================================
 // FAVORITOS — guardados en localStorage del navegador

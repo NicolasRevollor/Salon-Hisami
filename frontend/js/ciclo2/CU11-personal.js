@@ -34,6 +34,9 @@ async function cargarEmpleadosAdmin() {
                 <td>
                     <button class="btn-table"
                         onclick="abrirModalEditarEmpleado('${emp.ci}')">Editar</button>
+                    <button class="btn-table"
+                        style="background:#d4a373; color:white;"
+                        onclick="verFichaEsteticista('${emp.ci}')">Ver Ficha</button>
                     <button
                         style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;
                                background:${activo ? '#28a745' : '#dc3545'};color:#fff;"

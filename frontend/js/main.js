@@ -421,18 +421,21 @@ function actualizarNavbar() {
         document.getElementById('nav-user-welcome').innerHTML =
             '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> ' +
             usuarioActual.nombre.split(' ')[0] + ' (' + usuarioActual.rol + ')';
-        // Mostrar botón Reportes solo a Admin y Personal
+        // Mostrar botón Reportes solo a Admin y Personal (navbar de escritorio +
+        // botón dentro del Centro de Gestión, que es el que se ve en móvil)
+        const mostrarReportes = usuarioActual.rol === 'Administrador' || usuarioActual.rol === 'Personal';
         const btnRep = document.getElementById('btn-reportes-nav');
-        if (btnRep) {
-            btnRep.style.display = (usuarioActual.rol === 'Administrador' || usuarioActual.rol === 'Personal')
-                ? 'inline-flex' : 'none';
-        }
+        if (btnRep) btnRep.style.display = mostrarReportes ? 'inline-flex' : 'none';
+        const btnRepGestion = document.getElementById('btn-reportes-centro-gestion');
+        if (btnRepGestion) btnRepGestion.style.display = mostrarReportes ? 'block' : 'none';
         cargarMenuUsuario(usuarioActual.ci); // Cargar el menú personalizado
     } else {
         document.getElementById('nav-actions-public').style.display = 'flex';
         document.getElementById('nav-actions-logged').style.display = 'none';
         const btnRep2 = document.getElementById('btn-reportes-nav');
         if (btnRep2) btnRep2.style.display = 'none';
+        const btnRepGestion2 = document.getElementById('btn-reportes-centro-gestion');
+        if (btnRepGestion2) btnRepGestion2.style.display = 'none';
         const nav = document.getElementById('nav-menu-movil');
         // Cerrar el menú si estaba abierto (el contenido se reconstruye al abrirse)
         if (nav) nav.classList.remove('active');
@@ -632,7 +635,7 @@ function cambiarTabAdmin(tab) {
     document.getElementById('vista-admin-' + tab)?.classList.remove('seccion-oculta');
     document.getElementById('tab-admin-' + tab)?.classList.add('active');
 
-    if (tab === 'servicios')      cargarServiciosAdmin();
+    if (tab === 'servicios')      { cargarServiciosAdmin(); inicializarFiltroCategoriaAdmin(); } // CU24
     if (tab === 'empleados')      cargarEmpleadosAdmin();
     if (tab === 'clientes')       cargarClientesAdmin();
     if (tab === 'categorias')     cargarCategoriasAdmin();

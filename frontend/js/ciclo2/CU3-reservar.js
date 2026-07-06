@@ -246,7 +246,7 @@ async function revisarReserva() {
         <p><strong>Fecha:</strong> ${formatearFecha(fecha)}</p>
         <p><strong>Esteticista(s):</strong> ${ests.map(e => e.nombre).join(', ')}</p>
         <p><strong>Hora:</strong> ${hora}</p>
-        <p><strong>Pago:</strong> ${pago === 'efectivo' ? 'Efectivo' : 'Código QR'}</p>`;
+        <p><strong>Pago:</strong> ${pago === 'efectivo' ? 'Efectivo' : pago === 'qr' ? 'Código QR' : 'Stripe (pagar en línea)'}</p>`;
     divResumen.style.display = 'block';
     divDisp.innerHTML = '<span style="color:#888;">Verificando disponibilidad...</span>';
     btnConfirm.style.display = 'none';

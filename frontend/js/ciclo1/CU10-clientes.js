@@ -32,6 +32,11 @@ async function cargarClientesAdmin() {
                         onclick="abrirModalEditarCliente('${c.ci}','${c.nombre}','${c.telefono || ''}','${c.email}','${c.tipo || 'Regular'}')">
                         Editar
                     </button>
+                    <button class="btn-accion"
+                        style="background:#d4a373; color:white; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:13px;"
+                        onclick="abrirModalPreferenciasCliente('${c.ci}','${c.nombre.replace(/'/g, "\\'")}')">
+                        Preferencias
+                    </button>
                     <button class="btn-accion eliminar"
                         onclick="eliminarClienteAdmin('${c.ci}','${c.nombre}')">
                         Eliminar

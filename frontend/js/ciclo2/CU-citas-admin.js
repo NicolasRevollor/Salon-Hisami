@@ -81,12 +81,9 @@ function _renderReservas(citas) {
         const yaPagado = c.metodo_pago === 'stripe';
         const celdaPago = yaPagado
             ? `<span style="color:#27ae60;font-weight:600;">✔ Pagado</span><br><small style="color:#888;">${monto}</small>`
-            : (c.estado !== 'Cancelada'
-                ? `<button onclick="event.stopPropagation(); abrirModalPago(${c.id_cita})"
-                       style="padding:5px 12px;background:#635bff;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
-                       Pagar con Stripe
-                   </button>`
-                : monto);
+            : (c.estado === 'Cancelada'
+                ? `<span style="color:#aaa;font-size:12px;">${monto}</span>`
+                : `<span style="color:#bbb;font-size:12px;">Pendiente de pago</span>`);
         return `
             <tr data-id="${c.id_cita}" onclick="_seleccionarFila(${c.id_cita}, this)">
                 <td>${c.id_cita}</td>
@@ -120,16 +117,50 @@ function _seleccionarFila(idCita, tr) {
         _reservaSeleccionada = idCita;
     }
 
-    // Mostrar u ocultar el botón de cancelar según si hay selección
-    const btnCancelar = document.getElementById('btn-cancelar-reserva-admin');
-    if (btnCancelar) btnCancelar.style.display = _reservaSeleccionada ? '' : 'none';
+    // Mostrar u ocultar botones según si hay selección y el estado de la reserva
+    const reserva = _reservaSeleccionada ? _todasReservas.find(r => r.id_cita === _reservaSeleccionada) : null;
+    const btnCancelar  = document.getElementById('btn-cancelar-reserva-admin');
+    const btnConfirmar = document.getElementById('btn-confirmar-reserva-admin');
+    if (btnCancelar)  btnCancelar.style.display  = _reservaSeleccionada ? '' : 'none';
+    if (btnConfirmar) btnConfirmar.style.display = (reserva && reserva.estado === 'Pendiente') ? '' : 'none';
 }
 
-// Quita la selección actual y oculta el botón de cancelar
+// Quita la selección actual y oculta los botones de acción
 function _deseleccionarFila() {
     _reservaSeleccionada = null;
-    const btnCancelar = document.getElementById('btn-cancelar-reserva-admin');
-    if (btnCancelar) btnCancelar.style.display = 'none';
+    const btnCancelar  = document.getElementById('btn-cancelar-reserva-admin');
+    const btnConfirmar = document.getElementById('btn-confirmar-reserva-admin');
+    if (btnCancelar)  btnCancelar.style.display  = 'none';
+    if (btnConfirmar) btnConfirmar.style.display = 'none';
+}
+
+// =============================================================================
+// CONFIRMAR RESERVA — cambia estado de Pendiente → Confirmada
+// Solo aplica a la reserva seleccionada cuando su estado es Pendiente
+// =============================================================================
+async function confirmarReservaAdmin() {
+    if (!_reservaSeleccionada) return;
+    const reserva = _todasReservas.find(r => r.id_cita === _reservaSeleccionada);
+    if (!reserva || reserva.estado !== 'Pendiente') {
+        mostrarToast('Solo se pueden confirmar reservas en estado Pendiente.', 'error');
+        return;
+    }
+    try {
+        const res  = await fetch(API_BASE + '/api/reservas/' + _reservaSeleccionada + '/confirmar', {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ ci_usuario: usuarioActual.ci, nombre_usuario: usuarioActual.nombre, rol: usuarioActual.rol })
+        });
+        const data = await res.json();
+        if (data.success) {
+            mostrarToast('Reserva confirmada. El cliente ya puede realizar el pago.', 'success');
+            cargarCitasAdmin();
+        } else {
+            mostrarToast(data.message || 'Error al confirmar la reserva', 'error');
+        }
+    } catch (err) {
+        mostrarToast('Error de conexión al confirmar', 'error');
+    }
 }
 
 // =============================================================================

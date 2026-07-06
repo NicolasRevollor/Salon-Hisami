@@ -69,7 +69,7 @@ function _renderizarTablaOrdenes(ordenes, cont) {
                 <td style="font-weight:600;">#${o.id_orden}</td>
                 <td>${o.nombre_proveedor || '<span style="color:#aaa;">Sin proveedor</span>'}</td>
                 <td>${o.fecha_orden ? new Date(o.fecha_orden).toLocaleDateString('es-BO') : '—'}</td>
-                <td>${o.fecha_entrega_esperada ? new Date(o.fecha_entrega_esperada + 'T12:00:00').toLocaleDateString('es-BO') : '—'}</td>
+                <td>${o.fecha_entrega_esperada ? new Date(String(o.fecha_entrega_esperada).substring(0, 10) + 'T12:00:00').toLocaleDateString('es-BO') : '—'}</td>
                 <td style="font-weight:600;">$${parseFloat(o.monto_total).toFixed(2)}</td>
                 <td>${estadoBadge}</td>
                 <td>

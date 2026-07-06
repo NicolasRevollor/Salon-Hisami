@@ -288,11 +288,14 @@ async function crearReserva(req, res) {
                 }
             }
 
-            // Registrar el pago asociado a esta reserva
-            await client.query(
-                'INSERT INTO pagos (id_cita, monto, metodo_pago) VALUES ($1, $2, $3)',
-                [id_cita, monto, metodo_pago]
-            );
+            // Para Stripe no se registra el pago aquí — se registra cuando el cliente
+            // completa el pago real a través de Stripe (endpoint /api/ciclo4/confirmar-pago)
+            if (metodo_pago !== 'stripe') {
+                await client.query(
+                    'INSERT INTO pagos (id_cita, monto, metodo_pago) VALUES ($1, $2, $3)',
+                    [id_cita, monto, metodo_pago]
+                );
+            }
         }
 
         await client.query('COMMIT');
@@ -399,7 +402,7 @@ async function getReservasCliente(req, res) {
                    ue.nombre AS nombre_esteticista,
                    pe.ci_usuario AS ci_esteticista,
                    STRING_AGG(DISTINCT e.nombre_especialidad, ', ') AS especialidades,
-                   pg.metodo_pago, pg.monto
+                   pg.metodo_pago, pg.monto, pg.estado_stripe
             FROM reservas r
             JOIN clientes cl ON r.id_cliente = cl.id_cliente
             JOIN personal pe ON r.id_esteticista = pe.id_esteticista
@@ -411,7 +414,7 @@ async function getReservasCliente(req, res) {
             LEFT JOIN pagos pg ON r.id_cita = pg.id_cita
             WHERE cl.ci_usuario = $1
             GROUP BY r.id_cita, r.fecha, r.hora, r.estado, r.reprogramaciones,
-                     ue.nombre, pe.ci_usuario, pg.metodo_pago, pg.monto
+                     ue.nombre, pe.ci_usuario, pg.metodo_pago, pg.monto, pg.estado_stripe
             ORDER BY r.fecha DESC, r.hora DESC
         `, [req.params.ci]);
 
@@ -587,6 +590,35 @@ async function completarReserva(req, res) {
     }
 }
 
+// =============================================================================
+// PUT /api/reservas/:id_cita/confirmar
+// El admin cambia el estado de una reserva Pendiente a Confirmada.
+// Recibe: { ci_usuario, nombre_usuario, rol }
+// =============================================================================
+async function confirmarReserva(req, res) {
+    const { id_cita } = req.params;
+    const { ci_usuario, nombre_usuario, rol } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE reservas SET estado = 'Confirmada'
+             WHERE id_cita = $1 AND estado = 'Pendiente'
+             RETURNING id_cita`,
+            [id_cita]
+        );
+        if (!result.rows.length) {
+            return res.status(400).json({ success: false, message: 'Reserva no encontrada o ya no está en estado Pendiente.' });
+        }
+        registrarEvento(
+            ci_usuario, nombre_usuario, rol,
+            'CONFIRMAR_RESERVA',
+            `Reserva #${id_cita} confirmada por el administrador`
+        );
+        res.json({ success: true, message: 'Reserva confirmada correctamente.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+}
+
 // Exportar todas las funciones para que routes/reservas.routes.js las use
 module.exports = {
     getEsteticistas,
@@ -595,6 +627,7 @@ module.exports = {
     crearReserva,
     editarReserva,
     completarReserva,
+    confirmarReserva,
     getReservasCliente,
     getReservasEsteticista,
     cancelarReserva

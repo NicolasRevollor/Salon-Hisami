@@ -314,13 +314,18 @@ function generarPDF(factura) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function cargarMisFacturas() {
-    if (!window.usuarioActual) return;
     const cont = document.getElementById('contenedor-mis-facturas');
     if (!cont) return;
     cont.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">Cargando facturas...</p>';
 
+    if (!window.usuarioActual || !window.usuarioActual.ci) {
+        cont.innerHTML = '<p style="color:#999;text-align:center;padding:30px;">Inicia sesión para ver tus facturas.</p>';
+        return;
+    }
+
     try {
         const resp = await fetch(`/api/ciclo4/facturas/cliente/${usuarioActual.ci}`);
+        if (!resp.ok) throw new Error(`Error ${resp.status}`);
         const data = await resp.json();
 
         if (!data.success || !data.facturas.length) {
